@@ -7,3 +7,8 @@ import { RouterLink, RouterView } from 'vue-router'
     esta es la app
   </p>
 </template>e>
+
+
+<style lang="scss">
+@use './styles/index.scss' as *;
+</style>
