@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import PaymentModal from '@/components/modals/payment.vue'
+import GeneratePaymentLink from '@/components/Wizards/generatePaymentLink/index.vue'
 
 const welcomeMessage = ref('Panel de Solicitudes de Pago')
 const isPaymentModalOpen = ref(false)
@@ -42,7 +42,7 @@ const handlePaymentSuccess = () => {
     </div>
   </main>
 
-  <PaymentModal 
+  <GeneratePaymentLink 
     :is-open="isPaymentModalOpen"
     @close="isPaymentModalOpen = false"
     @success="handlePaymentSuccess"
