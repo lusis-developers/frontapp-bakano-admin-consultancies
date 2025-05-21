@@ -67,12 +67,14 @@ const handleSubmit = async () => {
 
     const response = await paymentsService.generatePagopluxPaymentLink(form.value)
 
-    if (response.success && response.paymentUrl) {
+    console.log('response: ', response)
+
+    if (response.success && response.url && response.intentId) {
       paymentResponse.value = {
-        url: response.paymentUrl,
-        intentId: response.intentId || ''
+        url: response.url,
+        intentId: response.intentId
       }
-      currentStep.value = 4 // Nuevo paso para mostrar el resultado
+      currentStep.value = 4 // Cambiamos al paso de éxito
     } else {
       error.value = response.error || 'Error al generar el enlace de pago'
     }
@@ -105,7 +107,7 @@ const prevStep = () => {
 </script>
 
 <template>
-  <div v-if="isOpen" class="modal-overlay">
+  <div v-if="isOpen" class="modal-overlay" @click.self="emit('close')">
     <div class="modal-content">
       <div class="modal-header">
         <h2>Nueva Solicitud de Pago</h2>
@@ -236,6 +238,47 @@ const prevStep = () => {
           </div>
         </div>
 
+        <div v-if="currentStep === 4 && paymentResponse" class="step-content success-content">
+        <div class="success-icon">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <h3>¡Enlace generado exitosamente!</h3>
+
+        <div class="url-container">
+          <div class="url-box">
+            <div class="url-text">{{ paymentResponse?.url }}</div>
+            <button 
+              class="copy-button" 
+              :class="{ 'copy-success': copySuccess }" 
+              @click="handleCopyUrl"
+            >
+              <i class="fas fa-copy"></i>
+              <span v-if="!copySuccess">Copiar</span>
+              <span v-else>¡Copiado!</span>
+            </button>
+          </div>
+          <div class="url-info">Comparte este enlace con el cliente para que realice el pago.</div>
+        </div>
+
+        <div class="success-actions">
+          <a 
+            :href="paymentResponse?.url" 
+            target="_blank" 
+            class="visit-button"
+          >
+            <i class="fas fa-external-link-alt"></i>
+            Ver Enlace
+          </a>
+          <button 
+            class="new-payment-button" 
+            @click="() => { currentStep = 1; paymentResponse = null; form.monto = 0 }"
+          >
+            <i class="fas fa-plus-circle"></i>
+            Nuevo Pago
+          </button>
+        </div>
+      </div>
+
         <p v-if="error" class="error-message">{{ error }}</p>
 
         <div class="form-actions">
@@ -263,7 +306,7 @@ const prevStep = () => {
             type="submit" 
             class="submit-button"
             :disabled="isLoading"
-            v-if="currentStep === steps.length"
+            v-if="currentStep === steps.length && !paymentResponse"
           >
             <i v-if="isLoading" class="fas fa-spinner fa-spin"></i>
             <span v-else>Generar Enlace de Pago</span>
@@ -569,7 +612,7 @@ const prevStep = () => {
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 
   .url-text {
     flex: 1;
@@ -577,6 +620,12 @@ const prevStep = () => {
     font-family: monospace;
     color: $BAKANO-DARK;
   }
+}
+
+.url-info {
+  font-size: 0.9rem;
+  color: rgba($BAKANO-DARK, 0.7);
+  margin-top: 0.5rem;
 }
 
 .copy-button {
