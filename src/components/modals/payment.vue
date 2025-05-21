@@ -107,11 +107,11 @@ const prevStep = () => {
 </script>
 
 <template>
-  <div v-if="isOpen" class="modal-overlay" @click.self="emit('close')">
+<div v-if="isOpen" class="modal-overlay" @click.self="emit('close')">
     <div class="modal-content">
       <div class="modal-header">
         <h2>Nueva Solicitud de Pago</h2>
-        <button class="close-button" @click="emit('close')">
+        <button class="close-button" @click="emit('close')" aria-label="Cerrar modal">
           <i class="fas fa-times"></i>
         </button>
       </div>
@@ -238,7 +238,7 @@ const prevStep = () => {
           </div>
         </div>
 
-        <div v-if="currentStep === 4 && paymentResponse" class="step-content success-content">
+        <div v-if="currentStep === 4" class="step-content success-content">
         <div class="success-icon">
           <i class="fas fa-check-circle"></i>
         </div>
