@@ -1,0 +1,8 @@
+@use './index.scss' as *;
+
+html,
+body {
+  background-color: $BAKANO-LIGHT;
+  margin: 0;
+  font-family: $font-principal;
+}
