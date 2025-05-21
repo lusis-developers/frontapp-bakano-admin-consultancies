@@ -15,6 +15,7 @@ interface PagopluxPaymentRequest {
 interface PagopluxPaymentResponse {
   success: boolean
   paymentUrl?: string
+  intentId?: string
   error?: string
 }
 
@@ -36,10 +37,11 @@ class PaymentsService extends APIBase {
     data: PagopluxPaymentRequest,
   ): Promise<PagopluxPaymentResponse> {
     try {
-      const response = await this.post('/pagoplux/generate-payment-link', data)
+      const response = await this.post('pagoplux/generate-payment-link', data)
       return {
         success: true,
-        paymentUrl: (response.data as { paymentUrl: string }).paymentUrl,
+        paymentUrl: (response.data as { url: string }).url,
+        intentId: (response.data as { intentId: string }).intentId,
       }
     } catch (error: any) {
       return {

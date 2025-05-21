@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import authService from '@/services/authService'
 
 const route = useRoute()
+const router = useRouter()
 const isScrolled = ref(false)
 
 onMounted(() => {
@@ -11,6 +13,11 @@ onMounted(() => {
 
 const handleScroll = () => {
   isScrolled.value = window.scrollY > 50
+}
+
+const handleLogout = () => {
+  authService.logout()
+  router.push('/login')
 }
 
 const isAuthenticated = computed(() => {
@@ -49,12 +56,9 @@ const isInProfile = computed(() => {
         <router-link to="/dashboard" class="nav-link" :class="{ 'nav-link--active': isInDashboard }">
           <i class="fas fa-chart-line"></i> Dashboard
         </router-link>
-        <router-link to="/generar" class="nav-link nav-link--primary">
-          <i class="fas fa-plus"></i> Nuevo Reel
-        </router-link>
-        <router-link to="/perfil" class="nav-link" :class="{ 'nav-link--active': isInProfile }">
-          <i class="fas fa-user"></i> Perfil
-        </router-link>
+        <button @click="handleLogout" class="nav-link nav-link--danger">
+          <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+        </button>
       </div>
     </nav>
   </header>
