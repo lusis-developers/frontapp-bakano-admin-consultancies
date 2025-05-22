@@ -1,48 +1,90 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { usePaymentsStore } from '@/stores/payments'
 import GeneratePaymentLink from '@/components/Wizards/generatePaymentLink/index.vue'
 
 const welcomeMessage = ref('Panel de Solicitudes de Pago')
 const isPaymentModalOpen = ref(false)
+const paymentsStore = usePaymentsStore()
+const isLoading = ref(true)
+
+const formatDateToLocalYYYYMMDD = (date: Date) => {
+  const year = date.getFullYear()
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  const day = date.getDate().toString().padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const refreshSummary = async () => {
+  isLoading.value = true
+  const today = new Date()
+  const from = new Date(today.getFullYear(), today.getMonth(), 1)
+  const to = new Date(today)
+  to.setDate(to.getDate() + 1) // incluir el día completo
+  await paymentsStore.fetchSummary(formatDateToLocalYYYYMMDD(from), formatDateToLocalYYYYMMDD(to))
+  isLoading.value = false
+}
+
+onMounted(() => {
+  refreshSummary()
+})
 
 const handlePaymentSuccess = () => {
-  // Aquí podrías actualizar las estadísticas o mostrar un mensaje de éxito
   console.log('Pago generado exitosamente')
+  refreshSummary()
 }
+
+const paidByLink = computed(() => paymentsStore.summary?.confirmedPayments.withIntent.count || 0)
+const paidByTransfer = computed(() => paymentsStore.summary?.confirmedPayments.directTransfer.count || 0)
+const totalPaid = computed(() => paidByLink.value + paidByTransfer.value)
 </script>
 
 <template>
   <main class="dashboard">
     <div class="dashboard-content">
       <h1 class="dashboard-title">{{ welcomeMessage }}</h1>
-      <div class="dashboard-stats">
+
+      <div v-if="isLoading" class="loading-message">
+        <i class="fas fa-spinner fa-spin"></i> Cargando resumen del mes actual...
+      </div>
+
+      <div v-else class="dashboard-stats">
         <div class="stat-card">
-          <i class="fas fa-money-bill-wave"></i>
-          <h3>Pagos Generados</h3>
-          <p class="stat-number">0</p>
+          <i class="fas fa-link"></i>
+          <h3>Links de Pago Generados</h3>
+          <p class="stat-number">{{ paymentsStore.summary?.intents.totalCount || 0 }}</p>
         </div>
         <div class="stat-card">
           <i class="fas fa-check-circle"></i>
           <h3>Pagos Completados</h3>
-          <p class="stat-number">0</p>
+          <p class="stat-number">{{ totalPaid }}</p>
+        </div>
+        <div class="stat-card">
+          <i class="fas fa-bolt"></i>
+          <h3>Pagos por Link</h3>
+          <p class="stat-number">{{ paidByLink }}</p>
+        </div>
+        <div class="stat-card">
+          <i class="fas fa-university"></i>
+          <h3>Pagos por Transferencia</h3>
+          <p class="stat-number">{{ paidByTransfer }}</p>
         </div>
         <div class="stat-card">
           <i class="fas fa-clock"></i>
           <h3>Pagos Pendientes</h3>
-          <p class="stat-number">0</p>
+          <p class="stat-number">{{ paymentsStore.summary?.intents.pending.count || 0 }}</p>
         </div>
       </div>
 
       <div class="actions-container">
         <button class="action-button" @click="isPaymentModalOpen = true">
-          <i class="fas fa-plus"></i>
-          Nueva Solicitud de Pago
+          <i class="fas fa-plus"></i> Nueva Solicitud de Pago
         </button>
       </div>
     </div>
   </main>
 
-  <GeneratePaymentLink 
+  <GeneratePaymentLink
     :is-open="isPaymentModalOpen"
     @close="isPaymentModalOpen = false"
     @success="handlePaymentSuccess"
@@ -74,6 +116,18 @@ const handlePaymentSuccess = () => {
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2rem;
+  }
+}
+
+.loading-message {
+  text-align: center;
+  font-size: 1.1rem;
+  color: rgba($BAKANO-DARK, 0.7);
+  margin: 2rem 0;
+
+  i {
+    margin-right: 0.5rem;
+    color: $BAKANO-PINK;
   }
 }
 
