@@ -34,7 +34,7 @@ const currentTab = ref<'payments' | 'clients'>('payments')
 @use '@/styles/index.scss' as *;
 
 .dashboard-wrapper {
-  padding: 1rem;
+  padding: 48px 16px;
 }
 
 .dashboard-menu {
