@@ -1,4 +1,3 @@
-// ✅ Nuevo código con peticiones reales desde el backend
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { format } from 'date-fns'
@@ -58,7 +57,9 @@ const formatDate = (date: string) => format(new Date(date), 'dd MMM yyyy HH:mm')
     </div>
 
     <div v-else class="clients-list">
-      <div class="client-card" v-for="client in clients" :key="client._id">
+      <div class="client-card" v-for="client in clients" :key="client._id"
+       @click="$router.push(`/client/${client._id}`)"
+      >
         <div class="client-info">
           <h3>{{ client.name }}</h3>
           <p><strong>Correo:</strong> {{ client.email }}</p>
