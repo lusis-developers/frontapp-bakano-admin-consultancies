@@ -24,11 +24,20 @@ const router = createRouter({
     },
     {
       path: '/client/:clientId',
-      name: 'client',
       component: () => import('../views/client.vue'),
-      meta: {
-        requiresAuth: true,
-      },
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/client/:clientId/businesses',
+      name: 'businesses', // ← este nombre debe coincidir
+      component: () => import('../views/businesses/index.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/client/:clientId/business/:businessId',
+      name: 'businessDetails',
+      component: () => import('../views/businesses/business.vue'),
+      meta: { requiresAuth: true },
     },
   ],
 })

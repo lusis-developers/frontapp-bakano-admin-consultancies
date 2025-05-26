@@ -17,8 +17,9 @@ onMounted(async () => {
 const formatDate = (date?: string) =>
   date ? format(new Date(date), 'dd MMM yyyy HH:mm') : 'No disponible'
 
-const goToBusiness = (businessId: string) => {
-  router.push(`/client/${clientId}/business/${businessId}`)
+
+const goToAllBusinesses = () => {
+  router.push({ name: 'businesses', params: { clientId } })
 }
 </script>
 
@@ -45,38 +46,15 @@ const goToBusiness = (businessId: string) => {
         <p><strong>Banco:</strong> {{ store.client.paymentInfo?.bank }}</p>
       </section>
 
-      <section v-if="store.client.businesses?.length" class="card">
-        <h3>Negocios Asociados</h3>
-        <div class="business-grid">
-          <div
-            class="business-card"
-            v-for="biz in store.client.businesses"
-            :key="biz._id"
-            @click="goToBusiness(biz._id)"
-          >
-            <h4>{{ biz.name }}</h4>
-            <p><strong>RUC:</strong> {{ biz.ruc }}</p>
-            <p><strong>Teléfono:</strong> {{ biz.phone }}</p>
-            <p><strong>Email:</strong> {{ biz.email }}</p>
-            <p><strong>Dirección:</strong> {{ biz.address }}</p>
-            <p><strong>Categoría:</strong> {{ biz.category || 'No especificada' }}</p>
-
-            <div class="links">
-              <p><strong>Archivos:</strong></p>
-              <ul>
-                <li v-if="biz.menuRestaurantePath"><a :href="biz.menuRestaurantePath" target="_blank">📋 Menú</a></li>
-                <li v-if="biz.costoPorPlatoPath"><a :href="biz.costoPorPlatoPath" target="_blank">💰 Costos</a></li>
-                <li v-if="biz.ventasClientePath"><a :href="biz.ventasClientePath" target="_blank">📊 Ventas Cliente</a></li>
-                <li v-if="biz.ventasMovimientosPath"><a :href="biz.ventasMovimientosPath" target="_blank">📈 Movimientos</a></li>
-                <li v-if="biz.ventasProductosPath"><a :href="biz.ventasProductosPath" target="_blank">🧾 Productos</a></li>
-                <li
-                  v-if="!biz.menuRestaurantePath && !biz.costoPorPlatoPath && !biz.ventasClientePath && !biz.ventasMovimientosPath && !biz.ventasProductosPath"
-                >
-                  No hay archivos subidos aún.
-                </li>
-              </ul>
-            </div>
-          </div>
+      <section v-if="store.businesses?.length" class="card">
+        <h3>Último Negocio Registrado</h3>
+        <div class="business-summary">
+          <h4>{{ store.businesses.at(-1)?.name }}</h4>
+          <p><strong>RUC:</strong> {{ store.businesses.at(-1)?.ruc }}</p>
+          <p><strong>Teléfono:</strong> {{ store.businesses.at(-1)?.phone }}</p>
+          <p><strong>Dirección:</strong> {{ store.businesses.at(-1)?.address }}</p>
+          <p><strong>Categoría:</strong> {{ store.businesses.at(-1)?.category || 'No especificada' }}</p>
+          <button @click="goToAllBusinesses" class="view-all-button">Ver todos los negocios</button>
         </div>
       </section>
 
@@ -175,6 +153,21 @@ const goToBusiness = (businessId: string) => {
         text-decoration: underline;
       }
     }
+  }
+}
+
+.view-all-button {
+  margin-top: 1rem;
+  background-color: $BAKANO-PINK;
+  color: $white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+
+  &:hover {
+    background-color: darken($BAKANO-PINK, 10%);
   }
 }
 </style>

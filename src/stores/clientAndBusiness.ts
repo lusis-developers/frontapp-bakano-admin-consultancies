@@ -27,17 +27,16 @@ const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
       this.error = null
 
       try {
-        const { client, business } = await clientsService.getClientAndBusiness(clientId, businessId)
+        const { client } = await clientsService.getClientAndBusiness(clientId, businessId)
 
         const businesses = Array.isArray(client.businesses) ? client.businesses : []
         const transactions = Array.isArray(client.transactions) ? client.transactions : []
 
         this.client = { ...client, transactions }
         this.businesses = businesses
-        this.selectedBusiness = business
-        console.log('this.client', this.client)
-        console.log('this.businesses', this.businesses)
-        console.log('this.selectedBusiness', this.selectedBusiness)
+
+        // ✅ Aquí seleccionamos el negocio manualmente
+        this.selectedBusiness = businesses.find((b) => b._id === businessId) || null
       } catch (error: unknown) {
         this.error = error as AxiosError
       } finally {
