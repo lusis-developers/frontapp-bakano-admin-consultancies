@@ -5,8 +5,9 @@ import type { Client } from '@/types/client.inteface'
 import type { Business } from '@/types/business.interface'
 
 interface RootState {
-  client: (Client & { transactions?: any[]; businesses?: Business[] }) | null
-  business: Business | null
+  client: (Client & { transactions?: any[] }) | null
+  businesses: Business[]
+  selectedBusiness: Business | null
   isLoading: boolean
   error: AxiosError | null
 }
@@ -14,7 +15,8 @@ interface RootState {
 const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
   state: (): RootState => ({
     client: null,
-    business: null,
+    businesses: [],
+    selectedBusiness: null,
     isLoading: false,
     error: null,
   }),
@@ -23,10 +25,19 @@ const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
     async fetchClientAndBusiness(clientId: string, businessId: string): Promise<void> {
       this.isLoading = true
       this.error = null
+
       try {
         const { client, business } = await clientsService.getClientAndBusiness(clientId, businessId)
-        this.client = client
-        this.business = business
+
+        const businesses = Array.isArray(client.businesses) ? client.businesses : []
+        const transactions = Array.isArray(client.transactions) ? client.transactions : []
+
+        this.client = { ...client, transactions }
+        this.businesses = businesses
+        this.selectedBusiness = business
+        console.log('this.client', this.client)
+        console.log('this.businesses', this.businesses)
+        console.log('this.selectedBusiness', this.selectedBusiness)
       } catch (error: unknown) {
         this.error = error as AxiosError
       } finally {
@@ -37,18 +48,29 @@ const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
     async fetchClientWithDetails(clientId: string): Promise<void> {
       this.isLoading = true
       this.error = null
+
       try {
         const response = await clientsService.getClientWithDetails(clientId)
-        this.client = {
-          ...response.client,
-          businesses: response.client.businesses || [],
-          transactions: response.client.transactions || [],
-        }
+
+        const businesses = Array.isArray(response.client.businesses)
+          ? response.client.businesses
+          : []
+        const transactions = Array.isArray(response.client.transactions)
+          ? response.client.transactions
+          : []
+
+        this.client = { ...response.client, transactions }
+        this.businesses = businesses
+        this.selectedBusiness = null // Resetea al entrar desde vista general
       } catch (error: unknown) {
         this.error = error as AxiosError
       } finally {
         this.isLoading = false
       }
+    },
+
+    setSelectedBusiness(business: Business) {
+      this.selectedBusiness = business
     },
   },
 })

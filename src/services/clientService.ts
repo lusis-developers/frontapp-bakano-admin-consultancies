@@ -1,26 +1,10 @@
 import type { Business } from '@/types/business.interface'
 import APIBase from './httpBase'
 import type { ClientWithDetailsResponse } from '@/types/responses/clientWithDetailsResponse.interface'
+import type { Client } from '@/types/client.inteface'
 
 interface ClientBusinessResponse {
-  client: {
-    _id: string
-    name: string
-    email: string
-    phone: string
-    country: string
-    city: string
-    dateOfBirth: string
-    createdAt: string
-    updatedAt: string
-    paymentInfo: {
-      preferredMethod: string
-      lastPaymentDate: string
-      cardType: string
-      cardInfo: string
-      bank: string
-    }
-  }
+  client: Client
   business: Business
 }
 
@@ -42,7 +26,7 @@ class ClientsService extends APIBase {
     clientId: string,
     businessId: string,
   ): Promise<ClientBusinessResponse> {
-    const response = await this.get(`/client/${clientId}/business/${businessId}`)
+    const response = await this.get(`client/${clientId}/business/${businessId}`)
     return response.data as ClientBusinessResponse
   }
 

@@ -1,13 +1,5 @@
 import type { Business } from './business.interface'
 
-export interface PaymentInfo {
-  preferredMethod: string
-  lastPaymentDate: string
-  cardType: string
-  cardInfo: string
-  bank: string
-}
-
 export interface Client {
   _id: string
   name: string
@@ -18,7 +10,14 @@ export interface Client {
   dateOfBirth: string
   createdAt: string
   updatedAt: string
-  paymentInfo: PaymentInfo
-  transactions?: string[]
+  paymentInfo: {
+    preferredMethod: string
+    lastPaymentDate: string
+    cardType: string
+    cardInfo: string
+    bank: string
+  }
+  // ✅ Nuevas propiedades opcionales
   businesses?: Business[]
+  transactions?: any[]
 }
