@@ -1,3 +1,4 @@
+import type { ManualTransferForm } from '@/types/manualTransfer.interface'
 import APIBase from './httpBase'
 
 interface PagopluxPaymentRequest {
@@ -96,6 +97,10 @@ class PaymentsService extends APIBase {
       console.error('[getPaymentsSummary] Error:', error)
       return null
     }
+  }
+
+  public async registerManualTransfer(data: ManualTransferForm) {
+    return await this.post('payments/manual-transfer', data)
   }
 }
 
