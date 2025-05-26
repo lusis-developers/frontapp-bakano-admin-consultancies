@@ -2,10 +2,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { usePaymentsStore } from '@/stores/payments'
 import GeneratePaymentLink from '@/components/Wizards/generatePaymentLink/index.vue'
-import ClientsDashboard from '@/views/Dashboard/clients.vue'
+import ManualTransferWizard from '@/components/Wizards/registerTransfer/index.vue'
 
 const welcomeMessage = ref('Panel de Solicitudes de Pago')
 const isPaymentModalOpen = ref(false)
+const isTransferModalOpen = ref(false)
 const paymentsStore = usePaymentsStore()
 const isLoading = ref(true)
 
@@ -81,6 +82,9 @@ const totalPaid = computed(() => paidByLink.value + paidByTransfer.value)
         <button class="action-button" @click="isPaymentModalOpen = true">
           <i class="fas fa-plus"></i> Nueva Solicitud de Pago
         </button>
+        <button class="action-button" @click="isTransferModalOpen = true">
+          <i class="fas fa-money-check-alt"></i> Registrar Pago Manual
+        </button>
       </div>
     </div>
   </main>
@@ -88,6 +92,12 @@ const totalPaid = computed(() => paidByLink.value + paidByTransfer.value)
   <GeneratePaymentLink
     :is-open="isPaymentModalOpen"
     @close="isPaymentModalOpen = false"
+    @success="handlePaymentSuccess"
+  />
+
+  <ManualTransferWizard
+    :is-open="isTransferModalOpen"
+    @close="isTransferModalOpen = false"
     @success="handlePaymentSuccess"
   />
 </template>
