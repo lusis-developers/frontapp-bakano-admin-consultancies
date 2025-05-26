@@ -7,22 +7,30 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: () => import('../views/HomeView.vue')
+      component: () => import('../views/HomeView.vue'),
     },
     {
       path: '/login',
       name: 'login',
-      component: () => import('../views/LoginView.vue')
+      component: () => import('../views/LoginView.vue'),
     },
     {
       path: '/dashboard',
       name: 'dashboard',
       component: () => import('../views/DashboardView.vue'),
       meta: {
-        requiresAuth: true
-      }
-    }
-  ]
+        requiresAuth: true,
+      },
+    },
+    {
+      path: '/client/:clientId',
+      name: 'client',
+      component: () => import('../views/client.vue'),
+      meta: {
+        requiresAuth: true,
+      },
+    },
+  ],
 })
 
 router.beforeEach((to, from, next) => {

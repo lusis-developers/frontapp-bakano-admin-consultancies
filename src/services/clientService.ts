@@ -1,6 +1,6 @@
-// 1. Servicio para obtener el cliente y negocio desde el backend
-// src/services/clientsService.ts
+import type { Business } from '@/types/business.interface'
 import APIBase from './httpBase'
+import type { ClientWithDetailsResponse } from '@/types/responses/clientWithDetailsResponse.interface'
 
 interface ClientBusinessResponse {
   client: {
@@ -21,7 +21,7 @@ interface ClientBusinessResponse {
       bank: string
     }
   }
-  business: Record<string, any> // puedes tiparlo mejor luego
+  business: Business
 }
 
 class ClientsService extends APIBase {
@@ -49,6 +49,11 @@ class ClientsService extends APIBase {
   public async getAllClients() {
     const response = await this.get('clients')
     return response.data
+  }
+
+  public async getClientWithDetails(clientId: string): Promise<ClientWithDetailsResponse> {
+    const response = await this.get(`client/${clientId}`)
+    return response.data as ClientWithDetailsResponse
   }
 }
 

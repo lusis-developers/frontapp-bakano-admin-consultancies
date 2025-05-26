@@ -1,33 +1,56 @@
-// src/stores/clientAndBusiness.ts
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { AxiosError } from 'axios'
 import clientsService from '@/services/clientService'
+import type { Client } from '@/types/client.inteface'
+import type { Business } from '@/types/business.interface'
 
-export const useClientAndBusinessStore = defineStore('clientAndBusiness', () => {
-  const client = ref<any | null>(null)
-  const business = ref<any | null>(null)
-  const isLoading = ref(false)
-  const error = ref<string | null>(null)
+interface RootState {
+  client: (Client & { transactions?: any[]; businesses?: Business[] }) | null
+  business: Business | null
+  isLoading: boolean
+  error: AxiosError | null
+}
 
-  const fetchClientAndBusiness = async (clientId: string, businessId: string) => {
-    isLoading.value = true
-    error.value = null
-    try {
-      const data = await clientsService.getClientAndBusiness(clientId, businessId)
-      client.value = data.client
-      business.value = data.business
-    } catch (err: any) {
-      error.value = err.message || 'Error al obtener datos del cliente y negocio'
-    } finally {
-      isLoading.value = false
-    }
-  }
+const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
+  state: (): RootState => ({
+    client: null,
+    business: null,
+    isLoading: false,
+    error: null,
+  }),
 
-  return {
-    client,
-    business,
-    isLoading,
-    error,
-    fetchClientAndBusiness,
-  }
+  actions: {
+    async fetchClientAndBusiness(clientId: string, businessId: string): Promise<void> {
+      this.isLoading = true
+      this.error = null
+      try {
+        const { client, business } = await clientsService.getClientAndBusiness(clientId, businessId)
+        this.client = client
+        this.business = business
+      } catch (error: unknown) {
+        this.error = error as AxiosError
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    async fetchClientWithDetails(clientId: string): Promise<void> {
+      this.isLoading = true
+      this.error = null
+      try {
+        const response = await clientsService.getClientWithDetails(clientId)
+        this.client = {
+          ...response.client,
+          businesses: response.client.businesses || [],
+          transactions: response.client.transactions || [],
+        }
+      } catch (error: unknown) {
+        this.error = error as AxiosError
+      } finally {
+        this.isLoading = false
+      }
+    },
+  },
 })
+
+export default useClientAndBusinessStore
