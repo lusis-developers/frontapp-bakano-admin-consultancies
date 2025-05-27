@@ -1,9 +1,20 @@
 <script setup lang="ts">
+import { watch } from 'vue'
 import type { ManualTransferForm } from '@/types/manualTransfer.interface'
 
-defineProps<{
-  form: ManualTransferForm
-}>()
+const props = defineProps<{ form: ManualTransferForm }>()
+const emit = defineEmits<{ (e: 'valid', isValid: boolean): void }>()
+
+watch(
+  () => [props.form.amount, props.form.description],
+  () => {
+    const isValid =
+      parseFloat(props.form.amount.toString()) > 0 &&
+      props.form.description.trim() !== ''
+    emit('valid', isValid)
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
@@ -12,7 +23,13 @@ defineProps<{
 
     <div class="form-group">
       <label>Monto Transferido</label>
-      <input v-model="form.amount" type="number" placeholder="Ej: 2500.00" min="0" step="0.01" />
+      <input
+        v-model="form.amount"
+        type="number"
+        placeholder="Ej: 2500.00"
+        min="0.01"
+        step="0.01"
+      />
     </div>
 
     <div class="form-group">

@@ -1,9 +1,20 @@
 <script setup lang="ts">
+import { watch } from 'vue'
 import type { ManualTransferForm } from '@/types/manualTransfer.interface'
 
-defineProps<{
-  form: ManualTransferForm
-}>()
+const props = defineProps<{ form: ManualTransferForm }>()
+const emit = defineEmits<{ (e: 'valid', isValid: boolean): void }>()
+
+watch(
+  () => [props.form.businessName, props.form.bank],
+  () => {
+    const isValid =
+      props.form.businessName.trim() !== '' &&
+      props.form.bank.trim() !== ''
+    emit('valid', isValid)
+  },
+  { immediate: true }
+)
 </script>
 
 <template>

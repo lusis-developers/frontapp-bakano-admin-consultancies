@@ -3,11 +3,14 @@ import type { ManualTransferForm } from '@/types/manualTransfer.interface'
 
 const props = defineProps<{
   form: ManualTransferForm
+  isLoading: boolean
+  wasConfirmed: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'confirm'): void
   (e: 'edit'): void
+  (e: 'close'): void
 }>()
 </script>
 
@@ -27,12 +30,23 @@ const emit = defineEmits<{
       <li><strong>Descripción:</strong> {{ form.description }}</li>
     </ul>
 
-    <div class="form-actions">
+    <div v-if="wasConfirmed" class="success-message">
+      <p><i class="fas fa-check-circle"></i> ¡La transferencia ha sido registrada exitosamente!</p>
+      <button @click="emit('close')" class="confirm-button">Cerrar</button>
+    </div>
+
+    <div class="form-actions" v-else>
       <button type="button" class="edit-button" @click="emit('edit')">
         <i class="fas fa-arrow-left"></i> Editar
       </button>
-      <button type="button" class="confirm-button" @click="emit('confirm')">
-        Confirmar Registro
+      <button
+        type="button"
+        class="confirm-button"
+        @click="emit('confirm')"
+        :disabled="isLoading"
+      >
+        <i v-if="isLoading" class="fas fa-spinner fa-spin"></i>
+        <span v-else>Confirmar Registro</span>
       </button>
     </div>
   </div>
@@ -93,11 +107,50 @@ const emit = defineEmits<{
     .confirm-button {
       background-color: $BAKANO-PINK;
       color: $white;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
 
       &:hover {
         background-color: darken($BAKANO-PINK, 5%);
       }
+
+      &:disabled {
+        background-color: rgba($BAKANO-PINK, 0.5);
+        cursor: not-allowed;
+      }
     }
   }
+
+  .success-message {
+    background-color: rgba($BAKANO-GREEN, 0.1);
+    border: 1px solid $BAKANO-GREEN;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    color: $BAKANO-DARK;
+    font-weight: 500;
+
+    i {
+      color: $BAKANO-GREEN;
+      margin-right: 0.5rem;
+    }
+
+    button {
+      margin-top: 1rem;
+      background-color: $BAKANO-GREEN;
+      color: $white;
+      border: none;
+      padding: 0.5rem 1.25rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+
+      &:hover {
+        background-color: darken($BAKANO-GREEN, 5%);
+      }
+    }
+  }
+
 }
 </style>

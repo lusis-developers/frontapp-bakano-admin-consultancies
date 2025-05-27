@@ -26,9 +26,18 @@ const form = ref<ManualTransferForm>({
 const isLoading = ref(false)
 const error = ref('')
 const success = ref(false)
+const stepValid = ref(true)
+const wasConfirmed = ref(false)
+
+
+
 
 const steps = [1, 2, 3, 4]
-const nextStep = () => { if (currentStep.value < steps.length) currentStep.value++ }
+const nextStep = () => {
+  if (stepValid.value && currentStep.value < steps.length) {
+    currentStep.value++
+  }
+}
 const prevStep = () => { if (currentStep.value > 1) currentStep.value-- }
 
 const handleSubmit = async () => {
@@ -37,8 +46,9 @@ const handleSubmit = async () => {
   try {
     await paymentService.registerManualTransfer(form.value)
     success.value = true
+    wasConfirmed.value = true
+    currentStep.value = 4 // ✅ cambiamos al resumen con mensaje de éxito
     emit('success')
-    currentStep.value = 4
   } catch (err: any) {
     error.value = err.message || 'Error al registrar el pago'
   } finally {
@@ -50,6 +60,7 @@ watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
     currentStep.value = 1
     success.value = false
+    wasConfirmed.value = false
     error.value = ''
     isLoading.value = false
     form.value = {
@@ -65,6 +76,7 @@ watch(() => props.isOpen, (isOpen) => {
     }
   }
 })
+
 </script>
 
 <template>
@@ -85,21 +97,43 @@ watch(() => props.isOpen, (isOpen) => {
         </div>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="wizard-form">
-        <Step1 v-if="currentStep === 1" :form="form" />
+      <form class="wizard-form">
+        <Step1 v-if="currentStep === 1" :form="form" @valid="stepValid = $event" />
         <Step2 v-if="currentStep === 2" :form="form" />
         <Step3 v-if="currentStep === 3" :form="form" />
-        <Step4 v-if="currentStep === 4 && success" :form="form" @confirm="emit('close')" @edit="() => { currentStep = 1 }" />
+        <Step4
+          v-if="currentStep === 4"
+          :form="form"
+          :is-loading="isLoading"
+          :was-confirmed="wasConfirmed"
+          @confirm="handleSubmit"
+          @edit="() => { currentStep = 1 }"
+          @close="emit('close')"
+        />
+
 
         <p v-if="error" class="error-message">{{ error }}</p>
 
         <div class="form-actions" v-if="currentStep < 4">
           <button type="button" class="cancel-button" @click="prevStep" v-if="currentStep > 1">Anterior</button>
-          <button type="button" class="next-button" @click="nextStep" v-if="currentStep < 3">Siguiente</button>
-          <button type="submit" class="submit-button" :disabled="isLoading" v-if="currentStep === 3">
-            <i v-if="isLoading" class="fas fa-spinner fa-spin"></i>
-            <span v-else>Registrar Pago</span>
+          <button
+            type="button"
+            class="next-button"
+            @click="nextStep"
+            :disabled="!stepValid"
+            v-if="currentStep < 3"
+          >
+            Siguiente
           </button>
+          <button
+            type="button"
+            class="next-button"
+            @click="nextStep"
+            :disabled="!stepValid"
+            v-if="currentStep === 3"
+          >
+            Ver Resumen
+</button>
         </div>
       </form>
     </div>

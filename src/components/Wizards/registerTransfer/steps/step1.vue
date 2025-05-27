@@ -1,11 +1,32 @@
 <script setup lang="ts">
-import { reactive, toRefs } from 'vue'
+import { watch } from 'vue'
 import type { ManualTransferForm } from '@/types/manualTransfer.interface'
 
-defineProps<{
-  form: ManualTransferForm
-}>()
+const props = defineProps<{ form: ManualTransferForm }>()
+const emit = defineEmits<{ (e: 'valid', isValid: boolean): void }>()
+
+watch(
+  () => [
+    props.form.clientName,
+    props.form.email,
+    props.form.phone,
+    props.form.clientId,
+    props.form.country
+  ],
+  () => {
+    const isValid =
+      props.form.clientName.trim() !== '' &&
+      props.form.email.trim() !== '' &&
+      props.form.phone.trim() !== '' &&
+      props.form.clientId.trim() !== '' &&
+      props.form.country.trim() !== ''
+    emit('valid', isValid)
+  },
+  { immediate: true }
+)
 </script>
+
+
 
 <template>
   <div class="step step1">
