@@ -14,14 +14,21 @@ const handleLogin = async () => {
     return
   }
 
+  const allowedEmails = ['lreyes@bakano.ec', 'dreyes@bakano.ec']
+  const allowedPassword = 'Bakano1234!'
+
+  if (!allowedEmails.includes(email.value.trim()) || password.value !== allowedPassword) {
+    error.value = 'Credenciales inválidas'
+    return
+  }
+
   try {
     isLoading.value = true
-    // TODO: Implementar lógica de inicio de sesión
-    await new Promise(resolve => setTimeout(resolve, 1000)) // Simulación
+    await new Promise(resolve => setTimeout(resolve, 1000)) // Simulación de carga
     localStorage.setItem('access_token', 'dummy_token')
     router.push('/dashboard')
   } catch (err) {
-    error.value = 'Credenciales inválidas'
+    error.value = 'Hubo un error inesperado'
   } finally {
     isLoading.value = false
   }
