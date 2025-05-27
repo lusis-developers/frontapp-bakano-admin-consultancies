@@ -100,7 +100,7 @@ class PaymentsService extends APIBase {
   }
 
   public async registerManualTransfer(data: ManualTransferForm) {
-    return await this.post('payments/manual-transfer', data)
+    return await this.post('webhook/receive-payment', data)
   }
 }
 
