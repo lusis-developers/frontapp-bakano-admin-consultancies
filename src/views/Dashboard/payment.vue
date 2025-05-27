@@ -179,6 +179,7 @@ const totalPaid = computed(() => paidByLink.value + paidByTransfer.value)
   display: flex;
   justify-content: center;
   gap: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .action-button {
