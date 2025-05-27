@@ -43,11 +43,21 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  if (to.meta.requiresAuth && !authService.isAuthenticated()) {
-    next('/login')
-  } else {
-    next()
+  const isLoggedIn = authService.isAuthenticated()
+
+  // Redirigir a dashboard si ya está autenticado y va a la raíz (/)
+  if (to.path === '/' && isLoggedIn) {
+    next('/dashboard')
+    return
   }
+
+  // Si la ruta requiere autenticación y no está autenticado
+  if (to.meta.requiresAuth && !isLoggedIn) {
+    next('/login')
+    return
+  }
+
+  next()
 })
 
 export default router
