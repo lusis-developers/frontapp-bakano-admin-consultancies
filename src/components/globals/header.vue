@@ -36,33 +36,37 @@ const isInProfile = computed(() => {
 <template>
   <header :class="['header', { 'header--scrolled': isScrolled }]">
     <nav class="nav">
-      <router-link to="/" class="logo-container">
-        <img 
-          src="@/assets/logos/bakano-dark.png" 
-          alt="Bakano Logo" 
-          class="logo"
-        />
+      <router-link v-if="!isAuthenticated" to="/" class="logo-container">
+        <img src="@/assets/logos/bakano-dark.png" alt="Bakano Logo" class="logo" />
       </router-link>
-      
+      <router-link v-else to="/dashboard" class="logo-container">
+        <img src="@/assets/logos/bakano-dark.png" alt="Bakano Logo" class="logo" />
+      </router-link>
+
       <!-- Menú para usuarios no autenticados -->
       <div v-if="!isAuthenticated" class="nav-links">
         <router-link to="/login" class="nav-link nav-link--primary">
-          <i class="fas fa-sign-in-alt"></i> Iniciar sesión
+          <i class="fas fa-sign-in-alt"></i> <span class="link-label">Iniciar sesión</span>
         </router-link>
       </div>
 
       <!-- Menú para usuarios autenticados -->
       <div v-else class="nav-links">
-        <router-link to="/dashboard" class="nav-link" :class="{ 'nav-link--active': isInDashboard }">
-          <i class="fas fa-chart-line"></i> Dashboard
+        <router-link
+          to="/dashboard"
+          class="nav-link"
+          :class="{ 'nav-link--active': isInDashboard }"
+        >
+          <i class="fas fa-chart-line"></i> <span class="link-label">Dashboard</span>
         </router-link>
         <button @click="handleLogout" class="nav-link nav-link--danger">
-          <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+          <i class="fas fa-sign-out-alt"></i> <span class="link-label">Cerrar sesión</span>
         </button>
       </div>
     </nav>
   </header>
 </template>
+
 
 <style lang="scss" scoped>
 @use '@/styles/index.scss' as *;
@@ -197,6 +201,20 @@ const isInProfile = computed(() => {
 
     &--primary {
       padding: 0.4rem 1.2rem;
+    }
+  }
+}
+
+@media (max-width: 435px) {
+  .link-label {
+    display: none;
+  }
+
+  .nav-link {
+    padding: 0.5rem;
+
+    i {
+      font-size: 1.2rem;
     }
   }
 }
