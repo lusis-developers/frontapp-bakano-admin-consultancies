@@ -1,5 +1,5 @@
 export interface ManualTransferForm {
-  amount: string
+  amount: number
   description: string
   clientName: string
   email: string
