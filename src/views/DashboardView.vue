@@ -57,7 +57,6 @@ const pending = computed(() => paymentsStore.summary?.intents.pending.count || 0
       <ClientsDashboard v-else />
     </div>
 
-    <!-- GRÁFICO -->
     <div class="dashboard-chart-wrapper" v-if="currentTab === 'payments' && !isLoading">
       <div class="chart-card">
         <h3 class="chart-title">Distribución de Pagos</h3>
@@ -84,6 +83,7 @@ const pending = computed(() => paymentsStore.summary?.intents.pending.count || 0
   gap: 1rem;
   justify-content: center;
   margin-bottom: 2rem;
+  flex-wrap: wrap;
 
   button {
     background: none;
