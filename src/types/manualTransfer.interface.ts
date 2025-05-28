@@ -8,4 +8,5 @@ export interface ManualTransferForm {
   bank: string
   clientId: string
   country: string
+  mongoId?: string
 }
