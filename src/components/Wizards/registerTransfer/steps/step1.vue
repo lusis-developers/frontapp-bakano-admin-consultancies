@@ -1,18 +1,29 @@
 <script setup lang="ts">
-import { watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import type { ManualTransferForm } from '@/types/manualTransfer.interface'
+import type { Client } from '@/types/client.inteface';
+import clientService from '@/services/clientService';
 
 const props = defineProps<{ form: ManualTransferForm }>()
 const emit = defineEmits<{ (e: 'valid', isValid: boolean): void }>()
 
+const clients = ref<Client[]>([])
+const selectedClientId = ref('')
+
+watch(selectedClientId, (id) => {
+  const selected = clients.value.find(c => c._id === id)
+  if (selected) {
+    props.form.mongoId = selected._id
+    props.form.clientName = selected.name
+    props.form.email = selected.email
+    props.form.phone = selected.phone || ''
+    props.form.clientId = selected.nationalIdentification
+    props.form.country = selected.country || 'ecuador'
+  }
+})
+
 watch(
-  () => [
-    props.form.clientName,
-    props.form.email,
-    props.form.phone,
-    props.form.clientId,
-    props.form.country
-  ],
+  () => [props.form.clientName, props.form.email, props.form.phone, props.form.clientId, props.form.country],
   () => {
     const isValid =
       props.form.clientName.trim() !== '' &&
@@ -24,6 +35,16 @@ watch(
   },
   { immediate: true }
 )
+
+
+onMounted(async () => {
+  const response = await clientService.getAllClients()
+  const allClients = typeof response === 'object' && response !== null && 'data' in response
+    ? (response.data as Client[])
+    : []
+  console.log('📦 Clientes:', allClients)
+  clients.value = allClients
+})
 </script>
 
 
@@ -31,6 +52,16 @@ watch(
 <template>
   <div class="step step1">
     <h3>Información del Cliente</h3>
+
+    <div class="form-group">
+      <label>Buscar Cliente Existente</label>
+      <select v-model="selectedClientId">
+        <option value="">-- Selecciona un cliente --</option>
+        <option v-for="client in clients" :key="client._id" :value="client._id">
+          {{ client.name }} - {{ client.email }}
+        </option>
+      </select>
+    </div>
 
     <div class="form-group">
       <label>Nombre del Cliente</label>
@@ -58,6 +89,7 @@ watch(
     </div>
   </div>
 </template>
+
 
 <style scoped lang="scss">
 @use '@/styles/index.scss' as *;
@@ -95,6 +127,18 @@ watch(
         border-color: $BAKANO-PINK;
       }
     }
+  }
+}
+
+select {
+  padding: 0.6rem;
+  border: 1px solid rgba($BAKANO-PURPLE, 0.3);
+  border-radius: 8px;
+  font-size: 1rem;
+
+  &:focus {
+    outline: none;
+    border-color: $BAKANO-PINK;
   }
 }
 </style>
