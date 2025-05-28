@@ -17,6 +17,7 @@ export interface Client {
     cardInfo: string
     bank: string
   }
+  nationalIdentification: string
   // ✅ Nuevas propiedades opcionales
   businesses?: Business[]
   transactions?: any[]
