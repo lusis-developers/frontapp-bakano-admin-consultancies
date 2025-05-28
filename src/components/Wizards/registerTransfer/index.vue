@@ -12,7 +12,7 @@ const emit = defineEmits<{ (e: 'close'): void; (e: 'success'): void }>()
 
 const currentStep = ref(1)
 const form = ref<ManualTransferForm>({
-  amount: '',
+  amount: 0,
   description: '',
   clientName: '',
   email: '',
@@ -64,7 +64,7 @@ watch(() => props.isOpen, (isOpen) => {
     error.value = ''
     isLoading.value = false
     form.value = {
-      amount: '',
+      amount: 0,
       description: '',
       clientName: '',
       email: '',
