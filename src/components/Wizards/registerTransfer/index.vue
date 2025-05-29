@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import Step1 from './steps/step1.vue'
 import Step2 from './steps/step2.vue'
 import Step3 from './steps/step3.vue'
 import Step4 from './steps/step4.vue'
 import paymentService from '@/services/paymentsService'
 import type { ManualTransferForm } from '@/types/manualTransfer.interface'
+import ConfirmCloseModal from '@/components/modals/confirmCloseModal.vue'
 
 const props = defineProps<{ isOpen: boolean }>()
 const emit = defineEmits<{ (e: 'close'): void; (e: 'success'): void }>()
@@ -28,9 +29,7 @@ const error = ref('')
 const success = ref(false)
 const stepValid = ref(true)
 const wasConfirmed = ref(false)
-
-
-
+const showConfirmClose = ref(false)
 
 const steps = [1, 2, 3, 4]
 const nextStep = () => {
@@ -56,6 +55,21 @@ const handleSubmit = async () => {
   }
 }
 
+const tryToClose = () => {
+  showConfirmClose.value = true
+}
+const confirmClose = () => {
+  showConfirmClose.value = false
+  emit('close')
+}
+const cancelClose = () => {
+  showConfirmClose.value = false
+}
+
+const isDirty = computed(() => {
+  return Object.values(form.value).some((v) => v !== '' && v !== 0)
+})
+
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
     currentStep.value = 1
@@ -80,11 +94,11 @@ watch(() => props.isOpen, (isOpen) => {
 </script>
 
 <template>
-  <div v-if="props.isOpen" class="modal-overlay" @click.self="emit('close')">
+  <div v-if="props.isOpen" class="modal-overlay" @click.self="tryToClose">
     <div class="modal-content">
       <div class="modal-header">
         <h2>Registrar Transferencia Manual</h2>
-        <button class="close-button" @click="emit('close')"><i class="fas fa-times"></i></button>
+        <button class="close-button" @click="tryToClose"><i class="fas fa-times"></i></button>
       </div>
 
       <div class="steps-indicator">
@@ -108,7 +122,7 @@ watch(() => props.isOpen, (isOpen) => {
           :was-confirmed="wasConfirmed"
           @confirm="handleSubmit"
           @edit="() => { currentStep = 1 }"
-          @close="emit('close')"
+          @close="tryToClose"
         />
 
 
@@ -138,6 +152,7 @@ watch(() => props.isOpen, (isOpen) => {
       </form>
     </div>
   </div>
+  <ConfirmCloseModal :open="showConfirmClose" @confirm="confirmClose" @cancel="cancelClose" />
 </template>
 
 <style scoped lang="scss">

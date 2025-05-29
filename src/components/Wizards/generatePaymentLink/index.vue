@@ -5,6 +5,7 @@ import Step2 from './steps/step2.vue'
 import Step3 from './steps/step3.vue'
 import Step4 from './steps/step4.vue'
 import paymentsService from '@/services/paymentsService'
+import ConfirmCloseModal from '@/components/modals/confirmCloseModal.vue'
 
 interface PaymentForm {
   monto: number
@@ -50,6 +51,7 @@ const isLoading = ref(false)
 const error = ref('')
 const paymentResponse = ref<PaymentResponse | null>(null)
 const copySuccess = ref(false)
+const showCloseConfirm = ref(false)
 
 const handleCopyUrl = async () => {
   if (paymentResponse.value?.url) {
@@ -63,6 +65,20 @@ const handleCopyUrl = async () => {
       console.error('Error al copiar:', err)
     }
   }
+}
+
+
+const tryClose = () => {
+  showCloseConfirm.value = true
+}
+
+const confirmClose = () => {
+  showCloseConfirm.value = false
+  emit('close')
+}
+
+const cancelClose = () => {
+  showCloseConfirm.value = false
 }
 
 const resetForm = () => {
@@ -124,11 +140,11 @@ const prevStep = () => { if (currentStep.value > 1) currentStep.value-- }
 </script>
 
 <template>
-  <div v-if="isOpen" class="modal-overlay" @click.self="emit('close')">
+  <div v-if="isOpen" class="modal-overlay" @click.self="tryClose">
     <div class="modal-content">
       <div class="modal-header">
         <h2>Nueva Solicitud de Pago</h2>
-        <button class="close-button" @click="emit('close')" aria-label="Cerrar modal">
+        <button class="close-button" @click="tryClose" aria-label="Cerrar modal">
           <i class="fas fa-times"></i>
         </button>
       </div>
@@ -166,6 +182,10 @@ const prevStep = () => { if (currentStep.value > 1) currentStep.value-- }
       </form>
     </div>
   </div>
+  <ConfirmCloseModal
+    :open="showCloseConfirm"
+    @confirm="confirmClose"
+    @cancel="cancelClose" />
 </template>
 
 <style lang="scss" scoped>
