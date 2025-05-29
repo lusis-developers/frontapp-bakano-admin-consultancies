@@ -1,14 +1,48 @@
 <script setup lang="ts">
-defineProps<{
-  form: any
-}>()
+import { ref, watch, computed } from 'vue'
+import useClientAndBusinessStore from '@/stores/clientAndBusiness'
+
+const props = defineProps<{ form: any }>()
+const clientBusinessStore = useClientAndBusinessStore()
+const selectedBusinessId = ref('')
+
+watch(
+  () => props.form.mongoId,
+  async (id) => {
+    if (id && clientBusinessStore.businesses.length === 0) {
+      console.log('🟣 Buscando negocios del cliente:', id)
+      await clientBusinessStore.fetchClientWithDetails(id)
+    }
+  },
+  { immediate: true }
+)
+
+watch(selectedBusinessId, (id) => {
+  const selected = clientBusinessStore.businesses.find(b => b._id === id)
+  if (selected) {
+    props.form.nombreNegocio = selected.name
+    props.form.prefijo = selected.prefix || '593'
+  }
+})
+
+const businesses = computed(() => clientBusinessStore.businesses || [])
 </script>
+
 
 <template>
   <div class="step-content">
+    <div class="form-group">
+      <label for="negocioSelect">Seleccionar Negocio Existente</label>
+      <select v-model="selectedBusinessId" id="negocioSelect">
+        <option value="">-- Selecciona un negocio --</option>
+        <option v-for="biz in businesses" :key="biz._id" :value="biz._id">
+          {{ biz.name }}
+        </option>
+      </select>
+    </div>
     <div class="form-row">
       <div class="form-group">
-        <label for="nombreNegocio">Nombre del Negocio</label>
+        <label for="nombreNegocio">Nombre del Negocio (puedes editarlo o escribir uno nuevo)</label>
         <input type="text" id="nombreNegocio" v-model="form.nombreNegocio" required />
       </div>
 
@@ -59,6 +93,22 @@ defineProps<{
     }
   }
 }
+
+select {
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 2px solid rgba($BAKANO-DARK, 0.1);
+  border-radius: 8px;
+  background-color: $white;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+
+  &:focus {
+    outline: none;
+    border-color: $BAKANO-PINK;
+    box-shadow: 0 0 0 3px rgba($BAKANO-PINK, 0.1);
+  }
+}
+
 
 @keyframes fadeIn {
   from {

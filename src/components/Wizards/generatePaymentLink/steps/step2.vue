@@ -1,37 +1,65 @@
 <script setup lang="ts">
-defineProps<{
-  form: any
-}>()
+import { onMounted, ref, watch } from 'vue'
+import clientService from '@/services/clientService'
+import type { Client } from '@/types/client.inteface'
+
+const props = defineProps<{ form: any }>()
+const clients = ref<Client[]>([])
+const selectedClientId = ref('')
+
+watch(selectedClientId, (id) => {
+  const selected = clients.value.find(c => c._id === id)
+  if (selected) {
+    props.form.mongoId = selected._id
+    props.form.nombreCliente = selected.name
+    props.form.correoCliente = selected.email
+    props.form.telefono = selected.phone || ''
+    props.form.ci = selected.nationalIdentification
+  }
+})
+
+onMounted(async () => {
+  const response = await clientService.getAllClients()
+
+  if (typeof response === 'object' && response !== null && 'data' in response) {
+    clients.value = response.data as Client[]
+  } else {
+    console.warn('⚠️ Respuesta inesperada al cargar clientes:', response)
+    clients.value = []
+  }
+})
 </script>
 
 <template>
   <div class="step-content">
-    <div class="form-row">
-      <div class="form-group">
-        <label for="nombreCliente">Nombre del Cliente</label>
-        <input type="text" id="nombreCliente" v-model="form.nombreCliente" required />
-      </div>
-
-      <div class="form-group">
-        <label for="correoCliente">Correo del Cliente</label>
-        <input type="email" id="correoCliente" v-model="form.correoCliente" required />
-      </div>
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label for="telefono">Teléfono</label>
-        <input type="tel" id="telefono" v-model="form.telefono" required />
-      </div>
-
-      <div class="form-group">
-        <label for="ci">Cédula/RUC</label>
-        <input type="text" id="ci" v-model="form.ci" required />
-      </div>
-    </div>
     <div class="form-group">
-      <label for="direccion">Dirección</label>
-      <input type="text" id="direccion" v-model="form.direccion" required />
+      <label>Seleccionar Cliente Existente</label>
+      <select v-model="selectedClientId">
+        <option value="">-- Selecciona un cliente --</option>
+        <option v-for="client in clients" :key="client._id" :value="client._id">
+          {{ client.name }} - {{ client.email }}
+        </option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Nombre del Cliente</label>
+      <input v-model="form.nombreCliente" type="text" placeholder="Ej: Diego Reyes" />
+    </div>
+
+    <div class="form-group">
+      <label>Correo del Cliente</label>
+      <input v-model="form.correoCliente" type="email" placeholder="Ej: diego@email.com" />
+    </div>
+
+    <div class="form-group">
+      <label>Teléfono</label>
+      <input v-model="form.telefono" type="tel" placeholder="0999999999" />
+    </div>
+
+    <div class="form-group">
+      <label>Cédula o RUC</label>
+      <input v-model="form.ci" type="text" placeholder="Ej: 0954227648" />
     </div>
   </div>
 </template>
@@ -75,6 +103,22 @@ defineProps<{
     }
   }
 }
+
+select {
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 2px solid rgba($BAKANO-DARK, 0.1);
+  border-radius: 8px;
+  background-color: $white;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+
+  &:focus {
+    outline: none;
+    border-color: $BAKANO-PINK;
+    box-shadow: 0 0 0 3px rgba($BAKANO-PINK, 0.1);
+  }
+}
+
 
 @keyframes fadeIn {
   from {

@@ -16,6 +16,7 @@ interface PaymentForm {
   prefijo: string
   direccion: string
   ci: string
+  mongoId?: string
 }
 
 const props = defineProps<{
@@ -64,9 +65,31 @@ const handleCopyUrl = async () => {
   }
 }
 
+const resetForm = () => {
+  form.value = {
+    monto: 0,
+    descripcion: '',
+    nombreCliente: '',
+    correoCliente: '',
+    telefono: '',
+    nombreNegocio: '',
+    prefijo: '593',
+    direccion: '',
+    ci: '',
+    mongoId: undefined,
+  }
+  paymentResponse.value = null
+  currentStep.value = 1
+  error.value = ''
+  isLoading.value = false
+  copySuccess.value = false
+}
+
 // Agregar watch para props.isOpen
 watch(() => props.isOpen, (newValue) => {
-  console.log('Modal visibility changed:', newValue)
+  if (!newValue) {
+    resetForm()
+  }
 })
 
 const handleSubmit = async () => {
@@ -118,7 +141,13 @@ const prevStep = () => { if (currentStep.value > 1) currentStep.value-- }
         <Step1 v-if="currentStep === 1" :form="form" />
         <Step2 v-if="currentStep === 2" :form="form" />
         <Step3 v-if="currentStep === 3" :form="form" />
-        <Step4 v-if="currentStep === 4 && paymentResponse" :payment-response="paymentResponse" :copy-success="copySuccess" @copy="handleCopyUrl" @new="() => { currentStep = 1; paymentResponse = null; form.monto = 0 }" />
+        <Step4
+          v-if="currentStep === 4 && paymentResponse"
+          :payment-response="paymentResponse"
+          :copy-success="copySuccess"
+          @copy="handleCopyUrl"
+          @new="resetForm"
+        />
 
         <p v-if="error" class="error-message">{{ error }}</p>
 
