@@ -40,16 +40,14 @@ const businesses = computed(() => clientBusinessStore.businesses || [])
         </option>
       </select>
     </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label for="nombreNegocio">Nombre del Negocio (puedes editarlo o escribir uno nuevo)</label>
-        <input type="text" id="nombreNegocio" v-model="form.nombreNegocio" required />
-      </div>
+    <div class="form-group">
+      <label for="nombreNegocio">Nombre del Negocio (puedes editarlo o escribir uno nuevo)</label>
+      <input type="text" id="nombreNegocio" v-model="form.nombreNegocio" required />
+    </div>
 
-      <div class="form-group">
-        <label for="prefijo">Prefijo</label>
-        <input type="text" id="prefijo" v-model="form.prefijo" required />
-      </div>
+    <div class="form-group" id="prefijo-group">
+      <label for="prefijo">Prefijo</label>
+      <input type="text" id="prefijo" v-model="form.prefijo" required />
     </div>
   </div>
 </template>
@@ -72,6 +70,7 @@ const businesses = computed(() => clientBusinessStore.businesses || [])
 .form-group {
   display: flex;
   flex-direction: column;
+  margin-bottom: 1rem;
 
   label {
     margin-bottom: 0.5rem;
@@ -109,6 +108,9 @@ select {
   }
 }
 
+#prefijo-group input {
+  max-width: 120px;
+}
 
 @keyframes fadeIn {
   from {

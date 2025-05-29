@@ -82,6 +82,7 @@ onMounted(async () => {
 .form-group {
   display: flex;
   flex-direction: column;
+  margin-bottom: 1rem;
 
   label {
     margin-bottom: 0.5rem;
