@@ -31,23 +31,19 @@ onMounted(() => {
 })
 
 const paidByLink = computed(() => paymentsStore.summary?.confirmedPayments.withIntent.count || 0)
-const paidByTransfer = computed(() => paymentsStore.summary?.confirmedPayments.directTransfer.count || 0)
+const paidByTransfer = computed(
+  () => paymentsStore.summary?.confirmedPayments.directTransfer.count || 0,
+)
 const pending = computed(() => paymentsStore.summary?.intents.pending.count || 0)
 </script>
 
 <template>
   <div class="dashboard-wrapper">
     <nav class="dashboard-menu">
-      <button
-        :class="{ active: currentTab === 'payments' }"
-        @click="currentTab = 'payments'"
-      >
+      <button :class="{ active: currentTab === 'payments' }" @click="currentTab = 'payments'">
         <i class="fas fa-file-invoice-dollar"></i> Pagos
       </button>
-      <button
-        :class="{ active: currentTab === 'clients' }"
-        @click="currentTab = 'clients'"
-      >
+      <button :class="{ active: currentTab === 'clients' }" @click="currentTab = 'clients'">
         <i class="fas fa-users"></i> Clientes
       </button>
     </nav>
@@ -56,10 +52,9 @@ const pending = computed(() => paymentsStore.summary?.intents.pending.count || 0
       <PaymentsDashboard v-if="currentTab === 'payments'" />
       <ClientsDashboard v-else />
     </div>
-
     <div class="dashboard-chart-wrapper" v-if="currentTab === 'payments' && !isLoading">
+      <h2 class="title">Distribución de Pagos</h2>
       <div class="chart-card">
-        <h3 class="chart-title">Distribución de Pagos</h3>
         <PaymentChart
           :paid-by-link="paidByLink"
           :paid-by-transfer="paidByTransfer"
@@ -70,13 +65,13 @@ const pending = computed(() => paymentsStore.summary?.intents.pending.count || 0
   </div>
 </template>
 
-
 <style scoped lang="scss">
 @use '@/styles/index.scss' as *;
 
 .dashboard-wrapper {
   padding: 48px 0px;
   width: 100%;
+  background-color: $white;
 }
 
 .dashboard-menu {
@@ -116,12 +111,20 @@ const pending = computed(() => paymentsStore.summary?.intents.pending.count || 0
   justify-content: center;
 }
 
-
 .dashboard-chart-wrapper {
   display: flex;
   justify-content: center;
+  padding: 3rem 1rem 0;
+  flex-wrap: wrap;
+
+  border-top: 1px solid $BAKANO-PINK;
+  max-width: 1024px;
+  margin: 0 auto;
   margin-top: 3rem;
-  padding: 0 1rem;
+
+  .title {
+    width: 100%;
+  }
 }
 
 .chart-card {
@@ -132,6 +135,9 @@ const pending = computed(() => paymentsStore.summary?.intents.pending.count || 0
   width: 100%;
   text-align: center;
   transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 
   &:hover {
     transform: translateY(-4px);

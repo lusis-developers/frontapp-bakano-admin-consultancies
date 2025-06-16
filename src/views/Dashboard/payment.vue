@@ -107,7 +107,6 @@ const totalPaid = computed(() => paidByLink.value + paidByTransfer.value)
 
 .dashboard {
   padding: 2rem;
-  min-height: calc(100vh - 64px);
   background-color: $white;
   border-radius: 8px;
 
