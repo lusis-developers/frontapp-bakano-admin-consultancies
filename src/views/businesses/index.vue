@@ -74,7 +74,7 @@ const hasAttachedFiles = (biz: any) => {
 @use '@/styles/index.scss' as *;
 
 .businesses-view {
-  padding: 2rem;
+  padding: 2rem 1rem;
   max-width: 900px;
   margin: 0 auto;
   font-family: $font-principal;
