@@ -118,7 +118,7 @@ const pending = computed(() => paymentsStore.summary?.intents.pending.count || 0
   flex-wrap: wrap;
 
   border-top: 1px solid $BAKANO-PINK;
-  max-width: 1024px;
+  max-width: 1200px;
   margin: 0 auto;
   margin-top: 3rem;
 
