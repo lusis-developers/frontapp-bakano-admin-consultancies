@@ -60,6 +60,8 @@ const formatDate = (date: string) => format(new Date(date), 'dd MMM yyyy HH:mm')
       <div class="client-card" v-for="client in clients" :key="client._id"
        @click="$router.push(`/client/${client._id}`)"
       >
+        <i class="fas fa-arrow-up-right-from-square open-link-icon"></i>
+
         <div class="client-info">
           <h3>{{ client.name }}</h3>
           <p><strong>Correo:</strong> {{ client.email }}</p>
@@ -111,6 +113,7 @@ const formatDate = (date: string) => format(new Date(date), 'dd MMM yyyy HH:mm')
 }
 
 .client-card {
+  position: relative; // NUEVO: Necesario para posicionar el ícono de forma absoluta
   background: $white;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba($BAKANO-PINK, 0.06);
@@ -120,10 +123,17 @@ const formatDate = (date: string) => format(new Date(date), 'dd MMM yyyy HH:mm')
   flex-direction: column;
   justify-content: space-between;
   transition: all 0.3s ease;
+  cursor: pointer; // NUEVO: Cambia el cursor a una mano para indicar que es clickeable
 
   &:hover {
     transform: translateY(-3px);
     box-shadow: 0 4px 16px rgba($BAKANO-PINK, 0.12);
+
+    // NUEVO: Efecto de hover sobre el ícono cuando pasamos el mouse por la tarjeta
+    .open-link-icon {
+      color: $BAKANO-PINK;
+      transform: scale(1.1);
+    }
   }
 
   h3 {
@@ -141,6 +151,16 @@ const formatDate = (date: string) => format(new Date(date), 'dd MMM yyyy HH:mm')
       color: $BAKANO-PURPLE;
     }
   }
+}
+
+// NUEVO: Estilos para el ícono de "abrir enlace"
+.open-link-icon {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  font-size: 1rem;
+  color: rgba($BAKANO-PURPLE, 0.5); // Un color sutil que no distrae
+  transition: all 0.3s ease;
 }
 
 .payment-info {

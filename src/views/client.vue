@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { format } from 'date-fns'
 import useClientAndBusinessStore from '@/stores/clientAndBusiness'
@@ -10,13 +10,30 @@ const clientId = route.params.clientId as string
 
 const store = useClientAndBusinessStore()
 
+// Variable para el feedback visual, funciona igual que antes
+const copiedField = ref<string | null>(null)
+
 onMounted(async () => {
   await store.fetchClientWithDetails(clientId)
 })
 
 const formatDate = (date?: string) =>
-  date ? format(new Date(date), 'dd MMM yyyy HH:mm') : 'No disponible'
+  date ? format(new Date(date), 'dd MMM HH:mm') : 'No disponible'
 
+// La lógica para copiar no necesita cambios
+const copyToClipboard = async (textToCopy: string, fieldName: string) => {
+  if (!textToCopy) return
+
+  try {
+    await navigator.clipboard.writeText(textToCopy)
+    copiedField.value = fieldName
+    setTimeout(() => {
+      copiedField.value = null
+    }, 2000)
+  } catch (err) {
+    console.error('Error al copiar:', err)
+  }
+}
 
 const goToAllBusinesses = () => {
   router.push({ name: 'businesses', params: { clientId } })
@@ -38,8 +55,27 @@ const goToAllBusinesses = () => {
     <div v-else-if="store.client" class="client-details">
       <section class="card">
         <h2>{{ store.client.name }}</h2>
-        <p><strong>Correo:</strong> {{ store.client.email }}</p>
-        <p><strong>Teléfono:</strong> {{ store.client.phone }}</p>
+        <p>
+          <strong>Correo:</strong>
+          <span class="copyable-text" @click="copyToClipboard(store.client.email, 'email')">
+            <span v-if="copiedField === 'email'" class="copy-feedback">¡Correo copiado!</span>
+            <span v-else>
+              {{ store.client.email }}
+              <i class="fas fa-copy copy-icon"></i>
+            </span>
+          </span>
+        </p>
+
+        <p>
+          <strong>Teléfono:</strong>
+          <span class="copyable-text" @click="copyToClipboard(store.client.phone, 'phone')">
+            <span v-if="copiedField === 'phone'" class="copy-feedback">¡Teléfono copiado!</span>
+            <span v-else>
+              {{ store.client.phone }}
+              <i class="fas fa-copy copy-icon"></i>
+            </span>
+          </span>
+        </p>
         <p><strong>Ubicación:</strong> {{ store.client.city }}, {{ store.client.country }}</p>
         <p><strong>Último Pago:</strong> {{ formatDate(store.client.paymentInfo?.lastPaymentDate) }}</p>
         <p><strong>Método de Pago:</strong> {{ store.client.paymentInfo?.preferredMethod }}</p>
@@ -107,14 +143,49 @@ const goToAllBusinesses = () => {
 
   p,
   li {
-    margin: 0.3rem 0;
+    margin: 0.5rem 0; // Aumentamos un poco el margen para que no se vea tan apretado
     color: $BAKANO-DARK;
+    line-height: 1.6;
   }
 
   ul {
     list-style: disc;
     padding-left: 1.5rem;
   }
+}
+
+// NUEVOS ESTILOS para el texto copiable
+.copyable-text {
+  display: inline-block;
+  position: relative;
+  cursor: pointer;
+  padding: 0.2rem 0.5rem;
+  margin-left: 0.5rem;
+  border-radius: 6px;
+  transition: all 0.25s ease-out;
+
+  .copy-icon {
+    margin-left: 0.5rem;
+    color: rgba($BAKANO-PURPLE, 0.5);
+    opacity: 0; // El ícono está oculto por defecto
+    transition: opacity 0.2s ease-out;
+    font-size: 0.85em;
+  }
+
+  &:hover {
+    background-color: rgba($BAKANO-PINK, 0.08);
+    color: $BAKANO-PINK;
+
+    .copy-icon {
+      opacity: 1; // Aparece al hacer hover
+    }
+  }
+}
+
+.copy-feedback {
+  color: $BAKANO-PINK;
+  font-weight: 600;
+  font-size: 0.9em;
 }
 
 .business-grid {
