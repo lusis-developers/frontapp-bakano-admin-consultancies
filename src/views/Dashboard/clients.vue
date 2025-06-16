@@ -88,6 +88,7 @@ const formatDate = (date: string) => format(new Date(date), 'dd MMM yyyy HH:mm')
   color: $BAKANO-DARK;
   margin-bottom: 1rem;
   font-weight: 600;
+  padding: 0 1rem;
 }
 
 .loading,
@@ -114,6 +115,7 @@ const formatDate = (date: string) => format(new Date(date), 'dd MMM yyyy HH:mm')
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba($BAKANO-PINK, 0.06);
   padding: 1.5rem;
+  margin: 1rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;

@@ -109,6 +109,7 @@ const totalPaid = computed(() => paidByLink.value + paidByTransfer.value)
   padding: 2rem;
   min-height: calc(100vh - 64px);
   background-color: $white;
+  border-radius: 8px;
 
   &-content {
     max-width: 1200px;
@@ -209,6 +210,7 @@ const totalPaid = computed(() => paidByLink.value + paidByTransfer.value)
 @media (max-width: 768px) {
   .dashboard {
     padding: 1rem;
+    margin: 1rem;
   }
 }
 </style>

@@ -80,7 +80,6 @@ onMounted(() => {
 <style scoped>
 .payment-chart {
   max-width: 420px;
-  margin: 2rem auto;
   text-align: center;
 }
 

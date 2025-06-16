@@ -75,7 +75,8 @@ const pending = computed(() => paymentsStore.summary?.intents.pending.count || 0
 @use '@/styles/index.scss' as *;
 
 .dashboard-wrapper {
-  padding: 48px 16px;
+  padding: 48px 0px;
+  width: 100%;
 }
 
 .dashboard-menu {
@@ -109,10 +110,6 @@ const pending = computed(() => paymentsStore.summary?.intents.pending.count || 0
   }
 }
 
-.dashboard-view {
-  padding: 0 1rem;
-}
-
 .dashboard-chart {
   margin-top: 3rem;
   display: flex;
@@ -131,7 +128,6 @@ const pending = computed(() => paymentsStore.summary?.intents.pending.count || 0
   background: $white;
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-  padding: 2rem;
   max-width: 480px;
   width: 100%;
   text-align: center;
