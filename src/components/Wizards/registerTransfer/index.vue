@@ -143,8 +143,7 @@ watch(() => props.isOpen, (isOpen) => {
       </div>
 
       <form class="wizard-form">
-        <Step0 v-if="currentStep === 0" @select="(method: 'datil' | 'transferencia') => handleMethodSelect(method as PayMethod)" />
-
+        <Step0 v-if="currentStep === 0" @select="handleMethodSelect" />
         <Step1 v-if="currentStep === 1" :form="form" @valid="stepValid = $event" />
         <Step2 v-if="currentStep === 2" :form="form" @valid="stepValid = $event" />
         <Step3 v-if="currentStep === 3" :form="form" @valid="stepValid = $event" />

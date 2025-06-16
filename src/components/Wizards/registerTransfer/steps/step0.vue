@@ -1,6 +1,11 @@
 <script setup lang="ts">
+// AHORA: Importamos el enum para usar sus valores y tipos
+import { PayMethod } from '@/enums/payMethod.enum';
+
 const emit = defineEmits<{
-  (e: 'select', method: 'datil' | 'transferencia'): void
+  // CORRECCIÓN: El tipo del evento ahora usa el enum, no strings.
+  // Esto soluciona el error.
+  (e: 'select', method: PayMethod): void
 }>()
 </script>
 
@@ -8,12 +13,12 @@ const emit = defineEmits<{
   <div class="step0">
     <h3>¿Qué tipo de pago manual deseas registrar?</h3>
     <div class="method-options">
-      <div class="method-card" @click="emit('select', 'datil')">
+      <div class="method-card" @click="emit('select', PayMethod.DATIL)">
         <i class="fas fa-hand-holding-usd"></i>
         <h4>Registrar con Dátil</h4>
         <p>Registra un pago procesado a través del servicio de Dátil.</p>
       </div>
-      <div class="method-card" @click="emit('select', 'transferencia')">
+      <div class="method-card" @click="emit('select', PayMethod.BANK_TRANSFER)">
         <i class="fas fa-university"></i>
         <h4>Registrar Transferencia</h4>
         <p>Registra un pago recibido por transferencia bancaria directa.</p>
