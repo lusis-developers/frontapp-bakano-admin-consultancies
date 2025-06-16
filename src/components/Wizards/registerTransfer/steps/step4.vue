@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import type { ManualTransferForm } from '@/types/manualTransfer.interface'
+import type { ManualPaymentForm } from '@/types/manualTransfer.interface';
+
 
 const props = defineProps<{
-  form: ManualTransferForm
+  form: ManualPaymentForm
   isLoading: boolean
   wasConfirmed: boolean
 }>()

@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import type { ManualPaymentForm } from '@/types/manualTransfer.interface';
 import { watch } from 'vue'
-import type { ManualTransferForm } from '@/types/manualTransfer.interface'
 
-const props = defineProps<{ form: ManualTransferForm }>()
+const props = defineProps<{ form: ManualPaymentForm }>()
 const emit = defineEmits<{ (e: 'valid', isValid: boolean): void }>()
 
 watch(

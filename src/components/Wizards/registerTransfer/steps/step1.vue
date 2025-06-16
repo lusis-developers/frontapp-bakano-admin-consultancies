@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
-import type { ManualTransferForm } from '@/types/manualTransfer.interface'
 import type { Client } from '@/types/client.inteface';
 import clientService from '@/services/clientService';
+import type { ManualPaymentForm } from '@/types/manualTransfer.interface';
 
-const props = defineProps<{ form: ManualTransferForm }>()
+const props = defineProps<{ form: ManualPaymentForm }>()
 const emit = defineEmits<{ (e: 'valid', isValid: boolean): void }>()
 
 const clients = ref<Client[]>([])

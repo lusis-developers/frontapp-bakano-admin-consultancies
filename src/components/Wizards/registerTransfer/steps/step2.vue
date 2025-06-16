@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import type { ManualTransferForm } from '@/types/manualTransfer.interface'
 import useClientAndBusinessStore from '@/stores/clientAndBusiness'
+import type { ManualPaymentForm } from '@/types/manualTransfer.interface';
 
 
-const props = defineProps<{ form: ManualTransferForm }>()
+const props = defineProps<{ form: ManualPaymentForm }>()
 const emit = defineEmits<{ (e: 'valid', isValid: boolean): void }>()
 const selectedBusinessId = ref('')
 
