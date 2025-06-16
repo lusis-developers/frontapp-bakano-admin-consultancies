@@ -3,12 +3,16 @@ import { ref, computed, onMounted } from 'vue'
 import { usePaymentsStore } from '@/stores/payments'
 import GeneratePaymentLink from '@/components/Wizards/generatePaymentLink/index.vue'
 import ManualTransferWizard from '@/components/Wizards/registerTransfer/index.vue'
+import InfoModal from '@/components/globals/InfoModal.vue'
+
+const paymentsStore = usePaymentsStore()
 
 const welcomeMessage = ref('Panel de Solicitudes de Pago')
 const isPaymentModalOpen = ref(false)
 const isTransferModalOpen = ref(false)
-const paymentsStore = usePaymentsStore()
+const isComingSoonModalOpen = ref(false)
 const isLoading = ref(true)
+
 
 const formatDateToLocalYYYYMMDD = (date: Date) => {
   const year = date.getFullYear()
@@ -22,7 +26,7 @@ const refreshSummary = async () => {
   const today = new Date()
   const from = new Date(today.getFullYear(), today.getMonth(), 1)
   const to = new Date(today)
-  to.setDate(to.getDate() + 1) // incluir el día completo
+  to.setDate(to.getDate() + 1)
   await paymentsStore.fetchSummary(formatDateToLocalYYYYMMDD(from), formatDateToLocalYYYYMMDD(to))
   isLoading.value = false
 }
@@ -79,7 +83,7 @@ const totalPaid = computed(() => paidByLink.value + paidByTransfer.value)
       </div>
 
       <div class="actions-container">
-        <button class="action-button" @click="isPaymentModalOpen = true">
+        <button class="action-button" @click="isComingSoonModalOpen = true">
           <i class="fas fa-plus"></i> Nueva Solicitud de Pago
         </button>
         <button class="action-button" @click="isTransferModalOpen = true">
@@ -100,6 +104,14 @@ const totalPaid = computed(() => paidByLink.value + paidByTransfer.value)
     @close="isTransferModalOpen = false"
     @success="handlePaymentSuccess"
   />
+
+  <InfoModal :is-open="isComingSoonModalOpen" @close="isComingSoonModalOpen = false">
+    <i class="fas fa-cogs info-modal-icon"></i>
+    <h2 class="info-modal-title">¡Función en Camino!</h2>
+    <p class="info-modal-text">
+      Estamos mejorando nuestra plataforma para ti. Muy pronto, desde aquí podrás generar solicitudes de pago automáticas y registrarlas directamente bajo el servicio de <strong>Dátil</strong>.
+    </p>
+  </InfoModal>
 </template>
 
 <style lang="scss" scoped>
@@ -206,6 +218,28 @@ const totalPaid = computed(() => paidByLink.value + paidByTransfer.value)
   }
 }
 
+// Estilos para el contenido dentro del InfoModal
+// Usamos :deep() para aplicar estilos al contenido del slot desde el padre
+:deep(.info-modal-icon) {
+  font-size: 3rem;
+  color: $BAKANO-PINK;
+  margin-bottom: 1.5rem;
+}
+
+:deep(.info-modal-title) {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: $BAKANO-DARK;
+  margin-bottom: 1rem;
+}
+
+:deep(.info-modal-text) {
+  font-size: 1rem;
+  color: rgba($BAKANO-DARK, 0.8);
+  line-height: 1.6;
+}
+
+
 @media (max-width: 768px) {
   .dashboard {
     padding: 1rem;
@@ -213,3 +247,4 @@ const totalPaid = computed(() => paidByLink.value + paidByTransfer.value)
   }
 }
 </style>
+```
