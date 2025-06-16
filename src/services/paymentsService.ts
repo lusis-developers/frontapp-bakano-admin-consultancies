@@ -1,4 +1,4 @@
-import type { ManualTransferForm } from '@/types/manualTransfer.interface'
+import type { ManualPaymentForm } from '@/types/manualTransfer.interface'
 import APIBase from './httpBase'
 
 interface PagopluxPaymentRequest {
@@ -99,7 +99,7 @@ class PaymentsService extends APIBase {
     }
   }
 
-  public async registerManualTransfer(data: ManualTransferForm) {
+  public async registerManualTransfer(data: ManualPaymentForm) {
     return await this.post('webhook/receive-payment', data)
   }
 }

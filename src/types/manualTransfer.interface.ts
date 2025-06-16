@@ -1,4 +1,6 @@
-export interface ManualTransferForm {
+import type { PayMethod } from '@/enums/payMethod.enum'
+
+export interface ManualPaymentForm {
   amount: number
   description: string
   clientName: string
@@ -9,4 +11,5 @@ export interface ManualTransferForm {
   clientId: string
   country: string
   mongoId?: string
+  paymentMethod: PayMethod | null
 }
