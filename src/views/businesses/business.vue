@@ -218,7 +218,6 @@ const formatDate = (date?: string) =>
   }
 }
 
-// --- INICIO: ESTILOS PARA COPIAR ---
 .copyable-text {
   display: inline-block;
   position: relative;
@@ -230,7 +229,7 @@ const formatDate = (date?: string) =>
   .copy-icon {
     margin-left: 0.5rem;
     color: rgba($BAKANO-PURPLE, 0.5);
-    opacity: 0; // El ícono está oculto por defecto
+    opacity: 0;
     transition: opacity 0.2s ease-out;
     font-size: 0.85em;
   }
@@ -240,7 +239,7 @@ const formatDate = (date?: string) =>
     color: $BAKANO-PINK;
 
     .copy-icon {
-      opacity: 1; // Aparece al hacer hover
+      opacity: 1;
     }
   }
 }
@@ -250,5 +249,4 @@ const formatDate = (date?: string) =>
   font-weight: 600;
   font-size: 0.9em;
 }
-
-// --- FIN: ESTILOS PARA COPIAR ---</style>
+</style>
