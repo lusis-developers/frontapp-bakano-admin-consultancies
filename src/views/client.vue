@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { format } from 'date-fns'
 import useClientAndBusinessStore from '@/stores/clientAndBusiness'
 import { MeetingStatus, MeetingType } from '@/enums/meetingStatus.enum'
+// Asegúrate de que esta ruta y nombre de componente sean los correctos en tu proyecto
 import ConfirmStrategyMeet from '@/components/actions/buttons/confirmStrategyMeet.vue'
 
 const route = useRoute()
@@ -26,33 +27,32 @@ const portfolioAccessMeeting = computed(() => {
   return null;
 });
 
-// onMounted llama a las dos acciones necesarias en paralelo para inicializar la vista.
 onMounted(async () => {
   await Promise.all([
     store.fetchClientWithDetails(clientId),
-    store.fetchMeetingStatus(clientId)
+    store.fetchMeetingStatus(clientId),
+    store.fetchMeetingsHistory(clientId)
   ]);
 })
 
 const formatDate = (date?: string | Date) =>
-  date ? format(new Date(date), 'dd MMMM yyyy, HH:mm') : 'No disponible'
+  date ? format(new Date(date), 'dd MMMM, yyyy HH:mm') : 'No agendada'
 
 const copyToClipboard = async (textToCopy: string, fieldName: string) => {
-  if (!textToCopy) return
-
+  if (!textToCopy) return;
   try {
-    await navigator.clipboard.writeText(textToCopy)
-    copiedField.value = fieldName
+    await navigator.clipboard.writeText(textToCopy);
+    copiedField.value = fieldName;
     setTimeout(() => {
-      copiedField.value = null
-    }, 2000)
+      copiedField.value = null;
+    }, 2000);
   } catch (err) {
-    console.error('Error al copiar:', err)
+    console.error('Error al copiar:', err);
   }
 }
 
 const goToAllBusinesses = () => {
-  router.push({ name: 'businesses', params: { clientId } })
+  router.push({ name: 'businesses', params: { clientId } });
 }
 </script>
 
@@ -75,21 +75,15 @@ const goToAllBusinesses = () => {
         <p>
           <strong>Correo:</strong>
           <span class="copyable-text" @click="copyToClipboard(store.client.email, 'email')">
-            <span v-if="copiedField === 'email'" class="copy-feedback">¡Correo copiado!</span>
-            <span v-else>
-              {{ store.client.email }}
-              <i class="fas fa-copy copy-icon"></i>
-            </span>
+            <span v-if="copiedField === 'email'" class="copy-feedback">¡Copiado!</span>
+            <span v-else>{{ store.client.email }} <i class="fas fa-copy copy-icon"></i></span>
           </span>
         </p>
         <p>
           <strong>Teléfono:</strong>
           <span class="copyable-text" @click="copyToClipboard(store.client.phone, 'phone')">
-            <span v-if="copiedField === 'phone'" class="copy-feedback">¡Teléfono copiado!</span>
-            <span v-else>
-              {{ store.client.phone }}
-              <i class="fas fa-copy copy-icon"></i>
-            </span>
+            <span v-if="copiedField === 'phone'" class="copy-feedback">¡Copiado!</span>
+            <span v-else>{{ store.client.phone }} <i class="fas fa-copy copy-icon"></i></span>
           </span>
         </p>
         <p><strong>Ubicación:</strong> {{ store.client.city }}, {{ store.client.country }}</p>
@@ -98,41 +92,28 @@ const goToAllBusinesses = () => {
         <p><strong>Banco:</strong> {{ store.client.paymentInfo?.bank }}</p>
       </section>
 
-      <section class="card onboarding-status-card">
-        <h3>Estado de Onboarding</h3>
-        
-        <div v-if="portfolioAccessMeeting" class="status-block action-required">
-          <div class="status-icon">⚠️</div>
-          <div class="status-text">
-            <h4>Acción Requerida</h4>
-            <p>El cliente tiene una reunión de acceso agendada. Confirma que se ha verificado el acceso para habilitar el siguiente paso.</p>
-          </div>
-          <ConfirmStrategyMeet :meeting-id="portfolioAccessMeeting.id" />
-        </div>
-
-        <div v-else-if="store.client.meetings?.some(m => m.meetingType === 'data-strategy' && m.status === 'pending-schedule')" class="status-block waiting-client">
-          <div class="status-icon">✅</div>
-           <div class="status-text">
-            <h4>Acceso Verificado</h4>
-            <p>Se ha habilitado la reunión de estrategia. Esperando que el cliente agende la cita con Luis Reyes.</p>
-          </div>
-        </div>
-
-        <div v-else-if="store.client.meetings?.some(m => m.meetingType === 'data-strategy' && m.status === 'scheduled')" class="status-block next-meeting-scheduled">
-           <div class="status-icon">🗓️</div>
-           <div class="status-text">
-            <h4>¡Siguiente Reunión Agendada!</h4>
-            <p>El cliente ya tiene agendada su reunión de estrategia.</p>
-          </div>
-        </div>
-
-        <div v-else class="status-block all-good">
-           <div class="status-icon">👍</div>
-           <div class="status-text">
-            <h4>Proceso al día</h4>
-            <p>No hay acciones de onboarding pendientes en este momento.</p>
-          </div>
-        </div>
+      <section class="card actions-card" v-if="portfolioAccessMeeting">
+        <h3>Acciones Pendientes</h3>
+        <p class="action-description">
+          Confirmar que se ha verificado el acceso al portafolio comercial para habilitar la reunión de estrategia.
+        </p>
+        <confirm-strategy-meet
+          :meeting-id="portfolioAccessMeeting.id"
+        />
+      </section>
+      
+      <section class="card">
+         <h3>Historial de Reuniones</h3>
+         <ul v-if="store.meetingsHistory && store.meetingsHistory.length > 0" class="meeting-list">
+            <li v-for="meeting in store.meetingsHistory" :key="meeting.id">
+              <div class="meeting-details">
+                  <span class="meeting-type-text">{{ meeting.meetingType }} con {{ meeting.assignedTo }}</span>
+                  <span class="meeting-time">{{ formatDate(meeting.scheduledTime) }}</span>
+              </div>
+              <span :class="`status-${meeting.status}`">{{ meeting.status }}</span>
+            </li>
+         </ul>
+         <p v-else>No hay reuniones registradas.</p>
       </section>
 
       <section v-if="store.businesses?.length" class="card">
@@ -146,22 +127,11 @@ const goToAllBusinesses = () => {
         </div>
       </section>
 
-      <section class="card">
-         <h3>Historial de Reuniones</h3>
-         <ul v-if="store.client.meetings && store.client.meetings.length > 0" class="meeting-list">
-            <li v-for="meeting in store.client.meetings" :key="meeting.id">
-              <span class="meeting-type-text">{{ meeting.meetingType }} con {{ meeting.assignedTo }}</span>
-              <span :class="`status-${meeting.status}`">{{ meeting.status }}</span>
-            </li>
-         </ul>
-         <p v-else>No hay reuniones registradas.</p>
-      </section>
-
       <section v-if="store.client.transactions?.length" class="card">
         <h3>Transacciones</h3>
         <ul>
-          <li v-for="tx in store.client.transactions" :key="tx._id || tx">
-            ID: {{ tx.transactionId || tx }} | Monto: ${{ tx.amount }} | {{ formatDate(tx.date) }}
+          <li v-for="tx in store.client.transactions" :key="tx.id">
+            ID: {{ tx.transactionId }} | Monto: ${{ tx.amount }} | {{ formatDate(tx.date) }}
           </li>
         </ul>
       </section>
@@ -225,6 +195,17 @@ const goToAllBusinesses = () => {
   }
 }
 
+.actions-card {
+  border: 2px solid $BAKANO-PINK;
+  background: linear-gradient(to right, #fff, rgba($BAKANO-PINK, 0.05));
+}
+
+.action-description {
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 1.5rem;
+}
+
 .copyable-text {
   display: inline-flex;
   align-items: center;
@@ -286,8 +267,19 @@ const goToAllBusinesses = () => {
   }
 }
 
+.meeting-details {
+  display: flex;
+  flex-direction: column;
+}
+
 .meeting-type-text {
+  font-weight: 500;
   text-transform: capitalize;
+}
+
+.meeting-time {
+  font-size: 0.8rem;
+  color: #777;
 }
 
 .status-scheduled,
@@ -315,7 +307,7 @@ const goToAllBusinesses = () => {
   background-color: rgba($BAKANO-PURPLE, 0.1);
 }
 
-// Estilos para la nueva tarjeta de estado
+// Estilos para la tarjeta de estado
 .onboarding-status-card {
   h3 {
     margin-bottom: 1.5rem;
@@ -332,7 +324,7 @@ const goToAllBusinesses = () => {
 }
 
 .status-icon {
-  font-size: 1.5rem; // Tamaño reducido para un look más sutil
+  font-size: 1.5rem;
   line-height: 1.5;
   margin-top: 0.1rem;
 }

@@ -82,22 +82,18 @@ const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
     async confirmPortfolioAccess(portfolioMeetingId: string) {
       if (!this.client) return
 
-      this.isLoading = true // Mostramos un loader mientras se confirma
+      this.isLoading = true
       this.error = null
-
       try {
+        // 1. Llama al backend para ejecutar la acción de confirmar
         await clientsService.confirmStrategyMeeting(this.client._id, portfolioMeetingId)
 
-        // --- ACTUALIZACIÓN INSTANTÁNEA DE LA UI ---
-        // Para que el botón desaparezca al instante, actualizamos el estado local.
-        // Simulamos la respuesta que tendría la API si la volviéramos a llamar.
-        this.meetingStatus = {
-          hasScheduledMeeting: false, // Ya no hay reunión de Denisse "scheduled"
-          message: 'Acceso confirmado. El cliente ahora puede agendar la reunión de estrategia.',
-        }
-
-        // Opcional: Para asegurar la consistencia total, podemos refrescar los datos en segundo plano.
-        this.fetchClientWithDetails(this.client._id)
+        // 2. CORRECCIÓN: Volvemos a buscar los datos relevantes para que la UI se actualice.
+        //    Llamamos a las dos acciones que nuestra vista necesita para estar al día.
+        await Promise.all([
+          this.fetchMeetingStatus(this.client._id),
+          this.fetchMeetingsHistory(this.client._id),
+        ])
       } catch (error) {
         console.error('Error al confirmar el acceso:', error)
         this.error = error as any
