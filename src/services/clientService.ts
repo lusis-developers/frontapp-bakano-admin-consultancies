@@ -2,6 +2,12 @@ import type { Business } from '@/types/business.interface'
 import APIBase from './httpBase'
 import type { ClientWithDetailsResponse } from '@/types/responses/clientWithDetailsResponse.interface'
 import type { Client } from '@/types/client.inteface'
+import type {
+  AllMeetingsResponse,
+  ConfirmationResponse,
+  IMeetingStatusResponse,
+} from '@/types/responses/meetingConfirmationResponse.interface'
+import type { AxiosResponse } from 'axios'
 
 interface ClientBusinessResponse {
   client: Client
@@ -38,6 +44,29 @@ class ClientsService extends APIBase {
   public async getClientWithDetails(clientId: string): Promise<ClientWithDetailsResponse> {
     const response = await this.get(`client/${clientId}`)
     return response.data as ClientWithDetailsResponse
+  }
+
+  public async confirmStrategyMeeting(
+    clientId: string,
+    portfolioMeetingId: string,
+  ): Promise<ConfirmationResponse> {
+    const response = await this.post(`client/${clientId}/confirm-strategy-meeting`, {
+      portfolioMeetingId: portfolioMeetingId,
+    })
+    return response.data as ConfirmationResponse
+  }
+
+  public async getClientMeetingStatus(
+    clientId: string,
+  ): Promise<AxiosResponse<IMeetingStatusResponse>> {
+    // Usamos la nueva ruta que SÍ nos da los detalles de la reunión
+    return this.get<IMeetingStatusResponse>(`clients/${clientId}/meeting-status`)
+  }
+
+  public async getAllMeetingsForClient(
+    clientId: string,
+  ): Promise<AxiosResponse<AllMeetingsResponse>> {
+    return this.get<AllMeetingsResponse>(`client/${clientId}/all-meetings`)
   }
 }
 

@@ -1,4 +1,5 @@
 import type { Business } from './business.interface'
+import type { Meeting } from './meeting.interface'
 
 export interface Client {
   _id: string
@@ -18,7 +19,7 @@ export interface Client {
     bank: string
   }
   nationalIdentification: string
-  // ✅ Nuevas propiedades opcionales
   businesses?: Business[]
   transactions?: any[]
+  meetings?: Meeting[] // Un array de objetos del tipo que acabamos de crear
 }
