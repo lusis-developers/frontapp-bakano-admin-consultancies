@@ -1,95 +1,176 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
-import type { Client } from '@/types/client.inteface';
-import clientService from '@/services/clientService';
-import type { ManualPaymentForm } from '@/types/manualTransfer.interface';
+import { ref, computed, watch, onMounted } from 'vue'
+import type { Client } from '@/types/client.inteface'
+import clientService from '@/services/clientService'
+import type { ManualPaymentForm } from '@/types/manualTransfer.interface'
+import SearchableSelect from '@/components/shared/searchableSelect.vue'
 
 const props = defineProps<{ form: ManualPaymentForm }>()
-const emit = defineEmits<{ (e: 'valid', isValid: boolean): void }>()
+const emit = defineEmits<{
+  (e: 'update:form', form: ManualPaymentForm): void
+  (e: 'valid', isValid: boolean): void
+}>()
+const allClients = ref<Client[]>([])
+const isLoading = ref(true)
+const selectedClientId = ref<string | null>(null)
 
-const clients = ref<Client[]>([])
-const selectedClientId = ref('')
+const isExistingClient = ref(false)
 
-watch(selectedClientId, (id) => {
-  const selected = clients.value.find(c => c._id === id)
-  if (selected) {
-    props.form.mongoId = selected._id
-    props.form.clientName = selected.name
-    props.form.email = selected.email
-    props.form.phone = selected.phone || ''
-    props.form.clientId = selected.nationalIdentification
-    props.form.country = selected.country || 'ecuador'
+onMounted(async () => {
+  isLoading.value = true
+  try {
+    const response = (await clientService.getAllClients()) as { data: Client[] }
+    allClients.value = Array.isArray(response.data) ? response.data : []
+  } catch (error) {
+    console.error('Error al cargar la lista de clientes:', error)
+    allClients.value = []
+  } finally {
+    isLoading.value = false
+  }
+})
+
+const searchClientsOnFrontend = (query: string): Client[] => {
+  if (!query) return []
+  const lowerCaseQuery = query.toLowerCase().trim()
+  return allClients.value.filter(
+    (client) =>
+      client.name.toLowerCase().includes(lowerCaseQuery) ||
+      client.email.toLowerCase().includes(lowerCaseQuery),
+  )
+}
+
+const handleClientSelected = (client: Client | null) => {
+  if (client) {
+    const updatedForm: ManualPaymentForm = {
+      ...props.form,
+      clientName: client.name,
+      email: client.email,
+      phone: client.phone || '',
+      clientId: client.nationalIdentification,
+      country: client.country || 'ecuador',
+      mongoId: client._id,
+    }
+    emit('update:form', updatedForm)
+  }
+}
+
+const resetClientFields = () => {
+  const updatedForm = {
+    ...props.form,
+    mongoId: undefined,
+    clientName: '',
+    email: '',
+    phone: '',
+    clientId: '',
+  }
+  emit('update:form', updatedForm)
+}
+
+watch(isExistingClient, (isExisting) => {
+  if (!isExisting) {
+    resetClientFields()
+  }
+})
+
+const isFormValid = computed(() => {
+  if (isExistingClient.value) {
+    return !!props.form.mongoId
+  } else {
+    const { clientName, email, phone, clientId, country } = props.form
+    return (
+      clientName?.trim() !== '' &&
+      email?.trim() !== '' &&
+      phone?.trim() !== '' &&
+      clientId?.trim() !== '' &&
+      country?.trim() !== ''
+    )
   }
 })
 
 watch(
-  () => [props.form.clientName, props.form.email, props.form.phone, props.form.clientId, props.form.country],
-  () => {
-    const isValid =
-      props.form.clientName.trim() !== '' &&
-      props.form.email.trim() !== '' &&
-      props.form.phone.trim() !== '' &&
-      props.form.clientId.trim() !== '' &&
-      props.form.country.trim() !== ''
+  isFormValid,
+  (isValid) => {
     emit('valid', isValid)
   },
-  { immediate: true }
+  { immediate: true, deep: true },
 )
 
-
-onMounted(async () => {
-  const response = await clientService.getAllClients()
-  const allClients = typeof response === 'object' && response !== null && 'data' in response
-    ? (response.data as Client[])
-    : []
-  console.log('📦 Clientes:', allClients)
-  clients.value = allClients
-})
+const handleInputChange = (field: keyof ManualPaymentForm, value: string) => {
+  emit('update:form', { ...props.form, [field]: value })
+}
 </script>
-
-
 
 <template>
   <div class="step step1">
     <h3>Información del Cliente</h3>
 
-    <div class="form-group">
-      <label>Buscar Cliente Existente</label>
-      <select v-model="selectedClientId">
-        <option value="">-- Selecciona un cliente --</option>
-        <option v-for="client in clients" :key="client._id" :value="client._id">
-          {{ client.name }} - {{ client.email }}
-        </option>
-      </select>
+    <div class="form-group checkbox-group">
+      <input id="is-existing-client" type="checkbox" v-model="isExistingClient" />
+      <label for="is-existing-client">Seleccionar un cliente existente</label>
     </div>
 
-    <div class="form-group">
-      <label>Nombre del Cliente</label>
-      <input v-model="form.clientName" type="text" placeholder="Ej: Diego Reyes" />
+    <div v-if="isExistingClient" class="client-search-section">
+      <div v-if="isLoading" class="loading-placeholder">Cargando clientes...</div>
+      <SearchableSelect
+        v-else
+        v-model="selectedClientId"
+        :search-function="searchClientsOnFrontend"
+        label-field="name"
+        value-field="_id"
+        placeholder="Buscar cliente por nombre o email..."
+        @select="handleClientSelected"
+      />
     </div>
 
-    <div class="form-group">
-      <label>Correo Electrónico</label>
-      <input v-model="form.email" type="email" placeholder="Ej: diego@email.com" />
-    </div>
-
-    <div class="form-group">
-      <label>Teléfono</label>
-      <input v-model="form.phone" type="tel" placeholder="Ej: 0999999999" />
-    </div>
-
-    <div class="form-group">
-      <label>Cédula o RUC</label>
-      <input v-model="form.clientId" type="text" placeholder="Ej: 0954227648" />
-    </div>
-
-    <div class="form-group">
-      <label>País</label>
-      <input v-model="form.country" type="text" placeholder="Ej: Ecuador" />
+    <div v-else class="new-client-form">
+      <div class="form-group">
+        <label>Nombre del Cliente</label>
+        <input
+          :value="form.clientName"
+          @input="handleInputChange('clientName', ($event.target as HTMLInputElement).value)"
+          type="text"
+          placeholder="Ej: Ana Lema"
+        />
+      </div>
+      <div class="form-group">
+        <label>Correo Electrónico</label>
+        <input
+          :value="form.email"
+          @input="handleInputChange('email', ($event.target as HTMLInputElement).value)"
+          type="email"
+          placeholder="Ej: ana.l@email.com"
+        />
+      </div>
+      <div class="form-group">
+        <label>Teléfono</label>
+        <input
+          :value="form.phone"
+          @input="handleInputChange('phone', ($event.target as HTMLInputElement).value)"
+          type="tel"
+          placeholder="Ej: 0987654321"
+        />
+      </div>
+      <div class="form-group">
+        <label>Cédula o RUC</label>
+        <input
+          :value="form.clientId"
+          @input="handleInputChange('clientId', ($event.target as HTMLInputElement).value)"
+          type="text"
+          placeholder="Ej: 1722334455"
+        />
+      </div>
+      <div class="form-group">
+        <label>País</label>
+        <input
+          :value="form.country"
+          @input="handleInputChange('country', ($event.target as HTMLInputElement).value)"
+          type="text"
+          placeholder="Ej: Ecuador"
+        />
+      </div>
     </div>
   </div>
 </template>
-
 
 <style scoped lang="scss">
 @use '@/styles/index.scss' as *;
@@ -98,47 +179,76 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
 
-  h3 {
-    font-size: 1.25rem;
-    color: $BAKANO-PURPLE;
-    margin-bottom: 1rem;
+h3 {
+  font-size: 1.25rem;
+  color: $BAKANO-PURPLE;
+  margin-bottom: 0rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+
+  label {
+    font-weight: 600;
+    color: $BAKANO-DARK;
+    margin-bottom: 0.4rem;
   }
 
-  .form-group {
-    display: flex;
-    flex-direction: column;
+  input[type='text'],
+  input[type='email'],
+  input[type='tel'] {
+    padding: 0.6rem;
+    border: 1px solid rgba($BAKANO-PURPLE, 0.3);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border 0.2s ease;
 
-    label {
-      font-weight: 600;
-      color: $BAKANO-DARK;
-      margin-bottom: 0.4rem;
-    }
-
-    input {
-      padding: 0.6rem;
-      border: 1px solid rgba($BAKANO-PURPLE, 0.3);
-      border-radius: 8px;
-      font-size: 1rem;
-      transition: border 0.2s ease;
-
-      &:focus {
-        outline: none;
-        border-color: $BAKANO-PINK;
-      }
+    &:focus {
+      outline: none;
+      border-color: $BAKANO-PINK;
     }
   }
 }
 
-select {
+.checkbox-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid rgba($BAKANO-DARK, 0.1);
+  padding-bottom: 1rem;
+
+  label {
+    margin-bottom: 0; // Reset margin for this specific label
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  input[type='checkbox'] {
+    width: 1.2em;
+    height: 1.2em;
+    cursor: pointer;
+  }
+}
+
+.new-client-form,
+.client-search-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.loading-placeholder {
   padding: 0.6rem;
   border: 1px solid rgba($BAKANO-PURPLE, 0.3);
   border-radius: 8px;
+  background-color: #f7f7f7;
+  color: #888;
   font-size: 1rem;
-
-  &:focus {
-    outline: none;
-    border-color: $BAKANO-PINK;
-  }
+  text-align: center;
 }
 </style>
