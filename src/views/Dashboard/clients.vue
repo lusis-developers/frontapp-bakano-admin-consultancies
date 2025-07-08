@@ -83,6 +83,8 @@ const formatDate = (date: string) => format(new Date(date), 'dd MMM yyyy HH:mm')
 
 .clients-dashboard {
   margin-top: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .section-title {
