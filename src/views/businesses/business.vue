@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { format } from 'date-fns'
 import useClientAndBusinessStore from '@/stores/clientAndBusiness'
 import type { IManager } from '@/types/manager.interface'
 import ManagersCard from './components/ManagersCard.vue'
@@ -12,7 +11,6 @@ const businessId = route.params.businessId as string
 
 const store = useClientAndBusinessStore()
 
-// --- INICIO: LÓGICA PARA COPIAR ---
 const copiedField = ref<string | null>(null)
 
 const copyToClipboard = async (textToCopy: string, fieldName: string) => {
@@ -57,96 +55,53 @@ onMounted(async () => {
   <div class="business-details-view">
     <h1 class="page-title">Detalles del Negocio</h1>
 
-    <div v-if="store.isLoading" class="loading">
-      <i class="fas fa-spinner fa-spin"></i> Cargando información del negocio...
+    <div v-if="store.isLoading && !store.selectedBusiness" class="loading-state">
+      <i class="fas fa-spinner fa-spin"></i> Cargando información...
+    </div>
+    <div v-else-if="store.error" class="error-state">
+      <p><strong>Error al cargar los datos</strong></p>
+      <p>{{ store.error.message }}</p>
     </div>
 
-    <div v-else-if="store.error" class="error">
-      <p>Error: {{ store.error.message }}</p>
-    </div>
+    <div v-else-if="store.selectedBusiness" class="details-grid">
+      <div class="card info-card">
+        <h2>{{ store.selectedBusiness.name }}</h2>
+        <p><strong>RUC:</strong> <span class="copyable-text" @click="copyToClipboard(store.selectedBusiness.ruc, 'ruc')">{{ store.selectedBusiness.ruc }}<i class="fas fa-copy copy-icon"></i></span><span v-if="copiedField === 'ruc'" class="copy-feedback">✓</span></p>
+        <p><strong>Teléfono:</strong> <span class="copyable-text" @click="copyToClipboard(store.selectedBusiness.phone!, 'phone')">{{ store.selectedBusiness.phone }}<i class="fas fa-copy copy-icon"></i></span><span v-if="copiedField === 'phone'" class="copy-feedback">✓</span></p>
+        <p><strong>Email:</strong> <span class="copyable-text" @click="copyToClipboard(store.selectedBusiness.email!, 'email')">{{ store.selectedBusiness.email }}<i class="fas fa-copy copy-icon"></i></span><span v-if="copiedField === 'email'" class="copy-feedback">✓</span></p>
+        <p><strong>Dirección:</strong> <span class="copyable-text" @click="copyToClipboard(store.selectedBusiness.address!, 'address')">{{ store.selectedBusiness.address }}<i class="fas fa-copy copy-icon"></i></span><span v-if="copiedField === 'address'" class="copy-feedback">✓</span></p>
+        <p><strong>Objetivo:</strong> {{ store.selectedBusiness.objetivoIdeal || 'No especificado' }}</p>
+        <p><strong>Desafío Principal:</strong> {{ store.selectedBusiness.desafioPrincipal || 'No especificado' }}</p>
+      </div>
 
-    <div v-else-if="store.selectedBusiness" class="business-card">
-      <h2>{{ store.selectedBusiness.name }}</h2>
-
-      <p>
-        <strong>RUC:</strong>
-        <span class="copyable-text" @click="copyToClipboard(store.selectedBusiness.ruc, 'ruc')">
-          <span v-if="copiedField === 'ruc'" class="copy-feedback">¡RUC copiado!</span>
-          <span v-else>
-            {{ store.selectedBusiness.ruc }}
-            <i class="fas fa-copy copy-icon"></i>
-          </span>
-        </span>
-      </p>
-      <p>
-        <strong>Teléfono:</strong>
-        <span class="copyable-text" @click="copyToClipboard(store.selectedBusiness.phone!, 'phone')">
-          <span v-if="copiedField === 'phone'" class="copy-feedback">¡Teléfono copiado!</span>
-          <span v-else>
-            {{ store.selectedBusiness.phone }}
-            <i class="fas fa-copy copy-icon"></i>
-          </span>
-        </span>
-      </p>
-      <p>
-        <strong>Email:</strong>
-        <span class="copyable-text" @click="copyToClipboard(store.selectedBusiness.email!, 'email')">
-          <span v-if="copiedField === 'email'" class="copy-feedback">¡Email copiado!</span>
-          <span v-else>
-            {{ store.selectedBusiness.email }}
-            <i class="fas fa-copy copy-icon"></i>
-          </span>
-        </span>
-      </p>
-      <p>
-        <strong>Dirección:</strong>
-        <span class="copyable-text" @click="copyToClipboard(store.selectedBusiness.address!, 'address')">
-          <span v-if="copiedField === 'address'" class="copy-feedback">¡Dirección copiada!</span>
-          <span v-else>
-            {{ store.selectedBusiness.address }}
-            <i class="fas fa-copy copy-icon"></i>
-          </span>
-        </span>
-      </p>
-      <p><strong>Categoría:</strong> {{ store.selectedBusiness.category || 'No especificada' }}</p>
-      <p><strong>Objetivo:</strong> {{ store.selectedBusiness.objetivoIdeal || 'No especificado' }}</p>
-      <p><strong>Desafío Principal:</strong> {{ store.selectedBusiness.desafioPrincipal || 'No especificado' }}</p>
-
-      <div class="links">
+      <div class="card attachments-card">
         <h3>Archivos Adjuntos</h3>
-        <ul>
-          <li v-if="store.selectedBusiness.menuRestaurantePath">
-            <a :href="store.selectedBusiness.menuRestaurantePath" target="_blank">📋 Menú</a>
+        <ul class="file-list">
+          <li v-for="(menuUrl, index) in menuPaths" :key="menuUrl">
+            <a :href="menuUrl" target="_blank" rel="noopener noreferrer">
+              <i class="icon">📋</i>
+              <span class="file-name">Menú {{ menuPaths.length > 1 ? index + 1 : '' }}</span>
+              <i class="fas fa-external-link-alt link-icon"></i>
+            </a>
           </li>
-          <li v-if="store.selectedBusiness.costoPorPlatoPath">
-            <a :href="store.selectedBusiness.costoPorPlatoPath" target="_blank">💰 Costos</a>
-          </li>
-          <li v-if="store.selectedBusiness.ventasClientePath">
-            <a :href="store.selectedBusiness.ventasClientePath" target="_blank">📊 Ventas Cliente</a>
-          </li>
-          <li v-if="store.selectedBusiness.ventasMovimientosPath">
-            <a :href="store.selectedBusiness.ventasMovimientosPath" target="_blank">📈 Movimientos</a>
-          </li>
-          <li v-if="store.selectedBusiness.ventasProductosPath">
-            <a :href="store.selectedBusiness.ventasProductosPath" target="_blank">🧾 Productos</a>
-          </li>
-          <li
-            v-if="!store.selectedBusiness.menuRestaurantePath &&
-              !store.selectedBusiness.costoPorPlatoPath &&
-              !store.selectedBusiness.ventasClientePath &&
-              !store.selectedBusiness.ventasMovimientosPath &&
-              !store.selectedBusiness.ventasProductosPath"
-          >
-            No hay archivos subidos aún.
+          <li v-if="store.selectedBusiness.costoPorPlatoPath"><a :href="store.selectedBusiness.costoPorPlatoPath" target="_blank"><i class="icon">💰</i><span class="file-name">Costos por Plato</span><i class="fas fa-external-link-alt link-icon"></i></a></li>
+          <li v-if="store.selectedBusiness.ventasClientePath"><a :href="store.selectedBusiness.ventasClientePath" target="_blank"><i class="icon">📊</i><span class="file-name">Ventas por Cliente</span><i class="fas fa-external-link-alt link-icon"></i></a></li>
+          <li v-if="store.selectedBusiness.ventasMovimientosPath"><a :href="store.selectedBusiness.ventasMovimientosPath" target="_blank"><i class="icon">📈</i><span class="file-name">Reporte de Movimientos</span><i class="fas fa-external-link-alt link-icon"></i></a></li>
+          <li v-if="store.selectedBusiness.ventasProductosPath"><a :href="store.selectedBusiness.ventasProductosPath" target="_blank"><i class="icon">🧾</i><span class="file-name">Ventas por Producto</span><i class="fas fa-external-link-alt link-icon"></i></a></li>
+          <li class="empty-state" v-if="!menuPaths.length && !store.selectedBusiness.costoPorPlatoPath && !store.selectedBusiness.ventasClientePath && !store.selectedBusiness.ventasMovimientosPath && !store.selectedBusiness.ventasProductosPath">
+            No hay archivos adjuntos.
           </li>
         </ul>
       </div>
-      <ManagersCard
-        :managers="store.selectedBusiness.managers!"
-        :is-loading="store.isLoading"
-        @add-manager="handleAddManager"
-        @remove-manager="handleRemoveManager"
-      />
+
+<div class="card-wrapper full-width">
+  <ManagersCard
+    :managers="store.selectedBusiness.managers!"
+    :is-loading="store.isLoading"
+    @add-manager="handleAddManager"
+    @remove-manager="handleRemoveManager"
+  />
+</div>
     </div>
   </div>
 </template>
@@ -154,122 +109,208 @@ onMounted(async () => {
 <style scoped lang="scss">
 @use '@/styles/index.scss' as *;
 
+/* --- Layout Principal --- */
 .business-details-view {
-  padding: 2rem;
-  max-width: 900px;
+  padding: 1.5rem;
+  max-width: 1400px;
   margin: 0 auto;
+  font-family: $font-secondary;
+}
+
+.page-title {
   font-family: $font-principal;
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+  color: $BAKANO-DARK;
+  font-weight: 700;
+}
 
-  .page-title {
-    font-size: 2rem;
-    margin-bottom: 1.5rem;
-    color: $BAKANO-DARK;
-    font-weight: 600;
-  }
+.loading-state,
+.error-state {
+  text-align: center;
+  padding: 4rem 1rem;
+  font-size: 1.1rem;
+  color: rgba($BAKANO-DARK, 0.6);
+  background-color: $white;
+  border-radius: 12px;
+}
 
-  .loading {
-    text-align: center;
-    font-size: 1rem;
-    color: $BAKANO-PINK;
-    margin-top: 2rem;
+.error-state {
+  color: $BAKANO-PINK;
+  border: 1px solid lighten($BAKANO-PINK, 30%);
+}
 
-    i {
-      margin-right: 0.5rem;
+.details-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  @media (min-width: 1024px) {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-around;
+
+    >*:nth-child(1),
+    >*:nth-child(2) {
+      justify-content: space-around;
+      width: 40%;
     }
-  }
 
-  .error {
-    color: $BAKANO-PINK;
-    text-align: center;
-    margin-top: 1rem;
+    >*:nth-child(3) {
+      width: 90%;
+    }
   }
 }
 
-.business-card {
+.card,
+.card-wrapper {
   background: $white;
-  border: 2px solid $BAKANO-PURPLE;
+  border: 1px solid $BAKANO-LIGHT;
   border-radius: 12px;
-  padding: 1.5rem 2rem; // Un poco más de padding horizontal
-  box-shadow: 0 4px 12px rgba($BAKANO-PURPLE, 0.1);
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba($BAKANO-DARK, 0.03);
+}
+
+.card-wrapper {
+  display: flex;
+  flex-direction: column;
+
+  &> :deep(.card) {
+    border: none;
+    padding: 0;
+    box-shadow: none;
+  }
+}
+
+.card {
+
+  h2,
+  h3 {
+    font-family: $font-principal;
+    font-weight: 600;
+    color: $BAKANO-DARK;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid $BAKANO-LIGHT;
+  }
 
   h2 {
-    color: $BAKANO-DARK;
-    margin-bottom: 1rem;
+    font-size: 1.5rem;
+  }
+
+  h3 {
+    font-size: 1.1rem;
   }
 
   p {
-    margin: 0.5rem 0;
-    font-size: 0.95rem;
-    color: $BAKANO-DARK;
-    line-height: 1.6; // Mejora la legibilidad
+    margin: 0.75rem 0;
+    line-height: 1.6;
+    color: rgba($BAKANO-DARK, 0.8);
 
     strong {
       color: $BAKANO-PURPLE;
-      margin-right: 0.5rem; // Espacio entre label y valor
-    }
-  }
-
-  .links {
-    margin-top: 1.5rem;
-    border-top: 1px solid rgba($BAKANO-DARK, 0.1); // Separador visual
-    padding-top: 1.5rem;
-
-    h3 {
-      margin-bottom: 0.5rem;
-      color: $BAKANO-PINK;
-      font-size: 1.1rem;
-    }
-
-    ul {
-      list-style: none;
-      padding: 0;
-
-      li {
-        margin: 0.3rem 0;
-
-        a {
-          text-decoration: none;
-          color: $BAKANO-PURPLE;
-          font-weight: 500;
-
-          &:hover {
-            text-decoration: underline;
-          }
-        }
-      }
+      font-weight: 600;
     }
   }
 }
 
 .copyable-text {
-  display: inline-block;
-  position: relative;
   cursor: pointer;
-  padding: 0.2rem 0.5rem;
-  border-radius: 6px;
-  transition: all 0.25s ease-out;
+  padding: 0.1rem 0.2rem;
+  border-radius: 4px;
+  transition: all 0.2s ease-out;
 
   .copy-icon {
     margin-left: 0.5rem;
-    color: rgba($BAKANO-PURPLE, 0.5);
+    color: rgba($BAKANO-PURPLE, 0.4);
     opacity: 0;
-    transition: opacity 0.2s ease-out;
-    font-size: 0.85em;
+    transition: all 0.2s;
+    font-size: 0.8em;
   }
 
   &:hover {
-    background-color: rgba($BAKANO-PINK, 0.08);
-    color: $BAKANO-PINK;
+    background-color: $overlay-purple;
+    color: $BAKANO-PURPLE;
 
     .copy-icon {
       opacity: 1;
+      transform: scale(1.1);
     }
   }
 }
 
 .copy-feedback {
-  color: $BAKANO-PINK;
-  font-weight: 600;
+  color: $BAKANO-GREEN;
+  font-weight: 700;
   font-size: 0.9em;
+  margin-left: 0.5rem;
 }
+
+
+.attachments-card {
+  h3 {
+    margin-bottom: 1rem;
+  }
+}
+
+.file-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  li a {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background-color: lighten($BAKANO-LIGHT, 2%);
+    border-radius: 8px;
+    border: 1px solid transparent;
+    text-decoration: none;
+    color: $BAKANO-DARK;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+
+    .icon {
+      font-style: normal;
+      font-size: 1.2rem;
+    }
+
+    .file-name {
+      flex-grow: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .link-icon {
+      color: rgba($BAKANO-PURPLE, 0.5);
+      transition: transform 0.2s ease;
+    }
+
+    &:hover {
+      border-color: $BAKANO-PURPLE;
+      background-color: $white;
+      box-shadow: 0 4px 10px $overlay-purple;
+      color: $BAKANO-PURPLE;
+
+      .link-icon {
+        transform: scale(1.2);
+      }
+    }
+  }
+
+  .empty-state {
+    font-style: italic;
+    color: rgba($BAKANO-DARK, 0.5);
+    padding: 1rem;
+    text-align: center;
+  }
+}
+
+@media (min-width: 960px) {}
 </style>
