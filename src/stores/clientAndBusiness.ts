@@ -6,6 +6,8 @@ import type { Business } from '@/types/business.interface'
 import { MeetingStatus } from '@/enums/meetingStatus.enum'
 import type { IMeetingStatusResponse } from '@/types/responses/meetingConfirmationResponse.interface'
 import type { Meeting } from '@/types/meeting.interface'
+import { businessService } from '@/services/businessService'
+import type { IManager } from '@/types/manager.interface'
 
 interface RootState {
   client: (Client & { transactions?: any[] }) | null
@@ -29,6 +31,13 @@ const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
   }),
 
   actions: {
+    _setClientDetails(clientData: Client) {
+      const businesses = Array.isArray(clientData.businesses) ? clientData.businesses : []
+      const transactions = Array.isArray(clientData.transactions) ? clientData.transactions : []
+      this.client = { ...clientData, transactions }
+      this.businesses = businesses
+    },
+
     async fetchClientAndBusiness(clientId: string, businessId: string): Promise<void> {
       this.isLoading = true
       this.error = null
@@ -123,6 +132,51 @@ const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
       } catch (error) {
         console.error('Error al obtener el historial de reuniones:', error)
         this.meetingsHistory = [] // En caso de error, dejamos un array vacío
+      }
+    },
+
+    async addManager(managerData: Omit<IManager, '_id'>) {
+      // Necesitamos el ID del cliente y del negocio para volver a cargar los datos.
+      if (!this.client?._id || !this.selectedBusiness?._id) return
+
+      const clientId = this.client._id
+      const businessId = this.selectedBusiness._id
+
+      this.isLoading = true
+      this.error = null
+      try {
+        // 1. Realizamos la acción de agregar. Ya no necesitamos guardar la respuesta.
+        await businessService.addManagerToBusiness(businessId, managerData)
+
+        // 2. Si tiene éxito, volvemos a cargar toda la información fresca.
+        await this.fetchClientAndBusiness(clientId, businessId)
+      } catch (error) {
+        console.error('Error al agregar el manager:', error)
+        this.error = error as any
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    async removeManager(managerId: string) {
+      if (!this.client?._id || !this.selectedBusiness?._id || !managerId) return
+
+      const clientId = this.client._id
+      const businessId = this.selectedBusiness._id
+
+      this.isLoading = true
+      this.error = null
+      try {
+        // 1. Realizamos la acción de eliminar.
+        await businessService.removeManagerFromBusiness(businessId, managerId)
+
+        // 2. Si tiene éxito, volvemos a cargar toda la información fresca.
+        await this.fetchClientAndBusiness(clientId, businessId)
+      } catch (error) {
+        console.error('Error al eliminar el manager:', error)
+        this.error = error as any
+      } finally {
+        this.isLoading = false
       }
     },
   },

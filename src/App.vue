@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Header from './components/globals/header.vue'
 import Footer from './components/globals/footer.vue'
+import ConfirmationDialog from './components/shared/ConfirmationDialog.vue';
 </script>
 
 <template>
@@ -8,6 +9,7 @@ import Footer from './components/globals/footer.vue'
   <main class="main-content">
     <RouterView />
   </main>
+  <ConfirmationDialog/>
   <Footer />
 </template>
 

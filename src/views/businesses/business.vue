@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue' // Se importa 'ref'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { format } from 'date-fns'
 import useClientAndBusinessStore from '@/stores/clientAndBusiness'
+import type { IManager } from '@/types/manager.interface'
+import ManagersCard from './components/ManagersCard.vue'
 
 const route = useRoute()
 const clientId = route.params.clientId as string
@@ -26,14 +28,29 @@ const copyToClipboard = async (textToCopy: string, fieldName: string) => {
     console.error('Error al copiar:', err)
   }
 }
-// --- FIN: LÓGICA PARA COPIAR ---
+
+const handleAddManager = async (managerData: Omit<IManager, '_id'>) => {
+  await store.addManager(managerData)
+}
+const handleRemoveManager = async (managerId: string) => {
+  await store.removeManager(managerId)
+}
+
+const menuPaths = computed(() => {
+  const path = store.selectedBusiness?.menuRestaurantePath
+  if (Array.isArray(path)) {
+    return path
+  }
+  if (typeof path === 'string' && path) {
+    return [path]
+  }
+  return []
+})
 
 onMounted(async () => {
   await store.fetchClientAndBusiness(clientId, businessId)
 })
 
-const formatDate = (date?: string) =>
-  date ? format(new Date(date), 'dd MMM yyyy HH:mm') : 'No disponible'
 </script>
 
 <template>
@@ -124,6 +141,12 @@ const formatDate = (date?: string) =>
           </li>
         </ul>
       </div>
+      <ManagersCard
+        :managers="store.selectedBusiness.managers!"
+        :is-loading="store.isLoading"
+        @add-manager="handleAddManager"
+        @remove-manager="handleRemoveManager"
+      />
     </div>
   </div>
 </template>
