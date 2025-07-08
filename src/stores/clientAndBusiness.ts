@@ -179,6 +179,27 @@ const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
         this.isLoading = false
       }
     },
+
+    async updateBusinessDetails(businessData: Partial<Business>) {
+      if (!this.client?._id || !this.selectedBusiness?._id) {
+        throw new Error('Cliente o negocio no seleccionado.')
+      }
+      const clientId = this.client._id
+      const businessId = this.selectedBusiness._id
+
+      this.isLoading = true
+      this.error = null
+      try {
+        await businessService.editBusinessData(businessId, businessData)
+        await this.fetchClientAndBusiness(clientId, businessId)
+      } catch (error) {
+        console.error('Error al actualizar el negocio:', error)
+        this.error = error as any
+        throw error // Propagamos el error
+      } finally {
+        this.isLoading = false
+      }
+    },
   },
 })
 

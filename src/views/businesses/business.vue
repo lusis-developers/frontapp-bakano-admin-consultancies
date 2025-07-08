@@ -4,6 +4,8 @@ import { useRoute } from 'vue-router'
 import useClientAndBusinessStore from '@/stores/clientAndBusiness'
 import type { IManager } from '@/types/manager.interface'
 import ManagersCard from './components/ManagersCard.vue'
+import EditBusinessModal from './components/EditBusinessModal.vue'
+import type { Business } from '@/types/business.interface'
 
 const route = useRoute()
 const clientId = route.params.clientId as string
@@ -12,6 +14,7 @@ const businessId = route.params.businessId as string
 const store = useClientAndBusinessStore()
 
 const copiedField = ref<string | null>(null)
+const isEditModalVisible = ref(false)
 
 const copyToClipboard = async (textToCopy: string, fieldName: string) => {
   if (!textToCopy) return
@@ -26,6 +29,16 @@ const copyToClipboard = async (textToCopy: string, fieldName: string) => {
     console.error('Error al copiar:', err)
   }
 }
+
+const handleSaveChanges = async (updatedData: Partial<Business>) => {
+  try {
+    await store.updateBusinessDetails(updatedData);
+    isEditModalVisible.value = false;
+    console.log('estamos guardando')
+  } catch (error) {
+    alert('No se pudieron guardar los cambios.');
+  }
+};
 
 const handleAddManager = async (managerData: Omit<IManager, '_id'>) => {
   await store.addManager(managerData)
@@ -55,6 +68,10 @@ onMounted(async () => {
   <div class="business-details-view">
     <h1 class="page-title">Detalles del Negocio</h1>
 
+     <button v-if="store.selectedBusiness" @click="isEditModalVisible = true" class="btn btn-primary">
+        <i class="fas fa-pencil-alt"></i> Editar Negocio
+      </button>
+
     <div v-if="store.isLoading && !store.selectedBusiness" class="loading-state">
       <i class="fas fa-spinner fa-spin"></i> Cargando información...
     </div>
@@ -66,7 +83,7 @@ onMounted(async () => {
     <div v-else-if="store.selectedBusiness" class="details-grid">
       <div class="card info-card">
         <h2>{{ store.selectedBusiness.name }}</h2>
-        <p><strong>RUC:</strong> <span class="copyable-text" @click="copyToClipboard(store.selectedBusiness.ruc, 'ruc')">{{ store.selectedBusiness.ruc }}<i class="fas fa-copy copy-icon"></i></span><span v-if="copiedField === 'ruc'" class="copy-feedback">✓</span></p>
+        <p><strong>RUC/ID:</strong> <span class="copyable-text" @click="copyToClipboard(store.selectedBusiness.ruc, 'ruc')">{{ store.selectedBusiness.ruc }}<i class="fas fa-copy copy-icon"></i></span><span v-if="copiedField === 'ruc'" class="copy-feedback">✓</span></p>
         <p><strong>Teléfono:</strong> <span class="copyable-text" @click="copyToClipboard(store.selectedBusiness.phone!, 'phone')">{{ store.selectedBusiness.phone }}<i class="fas fa-copy copy-icon"></i></span><span v-if="copiedField === 'phone'" class="copy-feedback">✓</span></p>
         <p><strong>Email:</strong> <span class="copyable-text" @click="copyToClipboard(store.selectedBusiness.email!, 'email')">{{ store.selectedBusiness.email }}<i class="fas fa-copy copy-icon"></i></span><span v-if="copiedField === 'email'" class="copy-feedback">✓</span></p>
         <p><strong>Dirección:</strong> <span class="copyable-text" @click="copyToClipboard(store.selectedBusiness.address!, 'address')">{{ store.selectedBusiness.address }}<i class="fas fa-copy copy-icon"></i></span><span v-if="copiedField === 'address'" class="copy-feedback">✓</span></p>
@@ -93,17 +110,24 @@ onMounted(async () => {
           </li>
         </ul>
       </div>
-
-<div class="card-wrapper full-width">
-  <ManagersCard
-    :managers="store.selectedBusiness.managers!"
-    :is-loading="store.isLoading"
-    @add-manager="handleAddManager"
-    @remove-manager="handleRemoveManager"
-  />
-</div>
-    </div>
-  </div>
+      <div class="card-wrapper full-width">
+        <ManagersCard
+          :managers="store.selectedBusiness.managers || []"
+          :is-loading="store.isLoading"
+          @add-manager="handleAddManager"
+          @remove-manager="handleRemoveManager"
+        />
+      </div>
+      </div>
+        <EditBusinessModal
+          v-if="store.selectedBusiness"
+          :is-visible="isEditModalVisible"
+          :business="store.selectedBusiness"
+          @close="isEditModalVisible = false"
+          @save="handleSaveChanges"
+          :is-loading="store.isLoading"
+        />
+      </div>
 </template>
 
 <style scoped lang="scss">
@@ -123,6 +147,28 @@ onMounted(async () => {
   margin-bottom: 1.5rem;
   color: $BAKANO-DARK;
   font-weight: 700;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: $font-principal;
+  font-weight: 600;
+  background-color: $BAKANO-PURPLE;
+  color: $white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 24px;
+
+  &:hover {
+    background-color: darken($BAKANO-PURPLE, 8%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba($BAKANO-PURPLE, 0.3);
+  }
 }
 
 .loading-state,
