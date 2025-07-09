@@ -2,6 +2,11 @@
 import { onMounted, ref } from 'vue';
 import { format } from 'date-fns';
 import useClientAndBusinessStore from '@/stores/clientAndBusiness';
+import { useConfirmationDialog } from '@/composables/useConfirmationDialog';
+import type { Meeting } from '@/types/meeting.interface';
+
+
+const { reveal } = useConfirmationDialog();
 
 const store = useClientAndBusinessStore();
 const meetingBeingAssigned = ref<string | null>(null);
@@ -17,6 +22,26 @@ const handleAssign = async (meetingId: string) => {
     console.error('Error al asignar la reunión');
   }
   meetingBeingAssigned.value = null;
+};
+
+const requestAssignConfirmation = async (meeting: Meeting) => {
+  try {
+    // El await aquí esperará a que el usuario presione "Confirmar"
+    const confirmed = await reveal({
+      title: 'Confirmar Asignación',
+      message: `Estás a punto de asignar la reunión de tipo "${meeting.meetingType}" al cliente "${store.client?.name}". Esta reunión se considera sin seguimiento y la acción no se puede deshacer.`,
+      confirmationText: 'ASIGNAR'
+    });
+
+    // Este bloque solo se ejecuta si la promesa se RESUELVE (es decir, el usuario confirma)
+    if (confirmed) {
+      await handleAssign(meeting._id);
+    }
+  } catch (error) {
+    // Este bloque se ejecuta si la promesa se RECHAZA (es decir, el usuario cancela)
+    console.log('Asignación cancelada por el usuario.');
+    // No necesitamos hacer nada más, el diálogo ya se cerró.
+  }
 };
 
 const formatDate = (date?: string | Date) =>
@@ -36,7 +61,7 @@ const formatDate = (date?: string | Date) =>
             <span class="meeting-type">{{ meeting.meetingType }}</span>
             <span class="meeting-time">{{ formatDate(meeting.scheduledTime) }}</span>
           </div>
-          <button @click="handleAssign(meeting._id)" class="btn-assign" :disabled="!!meetingBeingAssigned">
+          <button @click="requestAssignConfirmation(meeting)" class="btn-assign" :disabled="!!meetingBeingAssigned">
             <i v-if="meetingBeingAssigned === meeting._id" class="fas fa-spinner fa-spin"></i>
             <span v-else>Asignar</span>
           </button>
