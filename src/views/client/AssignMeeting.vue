@@ -31,13 +31,13 @@ const formatDate = (date?: string | Date) =>
     </div>
     <div v-if="store.unassignedMeetings.length > 0">
       <ul class="assign-meeting-list">
-        <li v-for="meeting in store.unassignedMeetings" :key="meeting.id" class="assign-meeting-item">
+        <li v-for="meeting in store.unassignedMeetings" :key="meeting._id" class="assign-meeting-item">
           <div class="meeting-info">
             <span class="meeting-type">{{ meeting.meetingType }}</span>
             <span class="meeting-time">{{ formatDate(meeting.scheduledTime) }}</span>
           </div>
-          <button @click="handleAssign(meeting.id)" class="btn-assign" :disabled="!!meetingBeingAssigned">
-            <i v-if="meetingBeingAssigned === meeting.id" class="fas fa-spinner fa-spin"></i>
+          <button @click="handleAssign(meeting._id)" class="btn-assign" :disabled="!!meetingBeingAssigned">
+            <i v-if="meetingBeingAssigned === meeting._id" class="fas fa-spinner fa-spin"></i>
             <span v-else>Asignar</span>
           </button>
         </li>
