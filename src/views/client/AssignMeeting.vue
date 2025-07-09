@@ -1,19 +1,25 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { format } from 'date-fns';
+import { differenceInMinutes, format, formatDistanceToNow, parseISO } from 'date-fns';
 import useClientAndBusinessStore from '@/stores/clientAndBusiness';
 import { useConfirmationDialog } from '@/composables/useConfirmationDialog';
 import type { Meeting } from '@/types/meeting.interface';
+import { es } from 'date-fns/locale';
 
 
 const { reveal } = useConfirmationDialog();
 
 const store = useClientAndBusinessStore();
 const meetingBeingAssigned = ref<string | null>(null);
+const expandedMeetingId = ref<string | null>(null);
 
-onMounted(() => {
-  store.fetchUnassignedMeetings();
-});
+const toggleDetails = (meetingId: string) => {
+  if (expandedMeetingId.value === meetingId) {
+    expandedMeetingId.value = null; // Si ya está abierta, la cierra
+  } else {
+    expandedMeetingId.value = meetingId; // Si está cerrada, la abre
+  }
+};
 
 const handleAssign = async (meetingId: string) => {
   meetingBeingAssigned.value = meetingId;
@@ -45,7 +51,25 @@ const requestAssignConfirmation = async (meeting: Meeting) => {
 };
 
 const formatDate = (date?: string | Date) =>
-  date ? format(new Date(date), 'dd MMMM, yyyy HH:mm') : 'N/A';
+  date ? format(new Date(date), 'dd MMMM, yyyy HH:mm', { locale: es }) : 'N/A';
+
+const formatRelativeTime = (date?: string | Date) =>
+  date ? formatDistanceToNow(new Date(date), { addSuffix: true, locale: es }) : 'N/A';
+
+
+const calculateDuration = (start?: string, end?: string) => {
+  if (!start || !end) return 'N/A';
+  const duration = differenceInMinutes(parseISO(end), parseISO(start));
+  if (duration < 60) return `${duration} min`;
+  const hours = Math.floor(duration / 60);
+  const minutes = duration % 60;
+  return `${hours}h ${minutes > 0 ? `${minutes}min` : ''}`;
+};
+
+onMounted(() => {
+  store.fetchUnassignedMeetings();
+});
+
 </script>
 
 <template>
@@ -56,15 +80,43 @@ const formatDate = (date?: string | Date) =>
     </div>
     <div v-if="store.unassignedMeetings.length > 0">
       <ul class="assign-meeting-list">
-        <li v-for="meeting in store.unassignedMeetings" :key="meeting._id" class="assign-meeting-item">
-          <div class="meeting-info">
-            <span class="meeting-type">{{ meeting.meetingType }}</span>
-            <span class="meeting-time">{{ formatDate(meeting.scheduledTime) }}</span>
+        <li v-for="meeting in store.unassignedMeetings" :key="meeting._id"
+          class="assign-meeting-item"
+          :class="{ 'is-expanded': expandedMeetingId === meeting._id }"
+        >
+          <div class="main-row" @click="toggleDetails(meeting._id)">
+            <div class="meeting-info">
+              <span class="meeting-type">{{ meeting.meetingType }}</span>
+              <span class="meeting-time">{{ formatDate(meeting.scheduledTime) }}</span>
+            </div>
+            <div class="meeting-actions">
+              <button @click.stop="requestAssignConfirmation(meeting)" class="btn-assign" :disabled="!!meetingBeingAssigned">
+                <i v-if="meetingBeingAssigned === meeting._id" class="fas fa-spinner fa-spin"></i>
+                <span v-else>Asignar</span>
+              </button>
+              <i class="fas fa-chevron-down expand-icon"></i>
+            </div>
           </div>
-          <button @click="requestAssignConfirmation(meeting)" class="btn-assign" :disabled="!!meetingBeingAssigned">
-            <i v-if="meetingBeingAssigned === meeting._id" class="fas fa-spinner fa-spin"></i>
-            <span v-else>Asignar</span>
-          </button>
+          <Transition name="slide-fade">
+            <div v-if="expandedMeetingId === meeting._id" class="details-panel">
+              <div class="detail-item">
+                <span class="detail-label">Agente Asignado:</span>
+                <span class="detail-value">{{ meeting.assignedTo }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Duración:</span>
+                <span class="detail-value">{{ calculateDuration(meeting.scheduledTime, meeting.endTime) }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Fuente:</span>
+                <span class="detail-value">{{ meeting.source }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Creada:</span>
+                <span class="detail-value">{{ formatRelativeTime(meeting.createdAt) }}</span>
+              </div>
+            </div>
+          </Transition>
         </li>
       </ul>
       </div>
@@ -90,16 +142,25 @@ const formatDate = (date?: string | Date) =>
 }
 
 .assign-meeting-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 0.25rem;
   border-bottom: 1px solid $BAKANO-LIGHT;
-  gap: 1rem;
+  transition: background-color 0.2s ease;
 
   &:last-child {
     border-bottom: none;
   }
+
+  &.is-expanded {
+    background-color: lighten($BAKANO-LIGHT, 3%);
+  }
+}
+
+.main-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0.25rem;
+  cursor: pointer;
+  gap: 1rem;
 }
 
 .meeting-info {
@@ -122,6 +183,12 @@ const formatDate = (date?: string | Date) =>
   color: rgba($BAKANO-DARK, 0.7);
 }
 
+.meeting-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .btn-assign {
   font-family: $font-principal;
   font-weight: 600;
@@ -134,6 +201,7 @@ const formatDate = (date?: string | Date) =>
   transition: all 0.2s ease;
   min-width: 90px;
   text-align: center;
+  z-index: 2;
 
   &:hover:not(:disabled) {
     background-color: $BAKANO-PURPLE;
@@ -144,6 +212,57 @@ const formatDate = (date?: string | Date) =>
     opacity: 0.7;
     cursor: not-allowed;
   }
+}
+
+.expand-icon {
+  color: rgba($BAKANO-DARK, 0.4);
+  transition: transform 0.3s ease;
+
+  .is-expanded & {
+    transform: rotate(180deg);
+  }
+}
+
+.details-panel {
+  padding: 1rem 1rem 1rem 3.75rem; // Alineado con el texto
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  border-top: 1px dashed $BAKANO-LIGHT;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-label {
+  font-family: $font-secondary;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: rgba($BAKANO-DARK, 0.5);
+  margin-bottom: 0.1rem;
+}
+
+.detail-value {
+  font-family: $font-secondary;
+  font-size: 0.9rem;
+  color: $BAKANO-DARK;
+}
+
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-fade-leave-active {
+  transition: all 0.2s cubic-bezier(1, 0.5, 0.8, 1);
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  transform: translateY(-10px);
+  opacity: 0;
 }
 
 .empty-state {
