@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import useClientAndBusinessStore from '@/stores/clientAndBusiness'
 import { MeetingStatus, MeetingType } from '@/enums/meetingStatus.enum'
 import TransactionList from './client/TransactionList.vue'
+import AssignMeeting from './client/AssignMeeting.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -185,6 +186,7 @@ watch(transactionCurrentPage, (newPage) => {
            </ul>
            <p v-else class="empty-state">No hay reuniones registradas.</p>
         </section>
+        <AssignMeeting />
         <TransactionList
           :transactions="store.transactions"
           :pagination="store.pagination || null" :is-loading="store.isTransactionsLoading"

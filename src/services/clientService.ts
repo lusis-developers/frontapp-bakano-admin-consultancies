@@ -8,10 +8,17 @@ import type {
   IMeetingStatusResponse,
 } from '@/types/responses/meetingConfirmationResponse.interface'
 import type { AxiosResponse } from 'axios'
+import type { Meeting } from '@/types/meeting.interface'
+import type { IPagination } from '@/types/transaction.interface'
 
 interface ClientBusinessResponse {
   client: Client
   business: Business
+}
+
+interface UnassignedMeetingsResponse {
+  data: Meeting[]
+  pagination: IPagination
 }
 
 class ClientsService extends APIBase {
@@ -67,6 +74,26 @@ class ClientsService extends APIBase {
     clientId: string,
   ): Promise<AxiosResponse<AllMeetingsResponse>> {
     return this.get<AllMeetingsResponse>(`client/${clientId}/all-meetings`)
+  }
+
+  public async getUnassignedMeetings(
+    page: number = 1,
+    limit: number = 5,
+  ): Promise<UnassignedMeetingsResponse> {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+    })
+    const response = await this.get(`client/meeting/unassigned?${params.toString()}`)
+    return response.data as UnassignedMeetingsResponse
+  }
+
+  public async assignMeetingToClient(
+    meetingId: string,
+    clientId: string,
+  ): Promise<{ data: Meeting }> {
+    const response = await this.patch(`client/meetings/${meetingId}/asign`, { clientId })
+    return response.data as { data: Meeting }
   }
 }
 

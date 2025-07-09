@@ -25,6 +25,9 @@ interface RootState {
     from: string | null
     to: string | null
   }
+  unassignedMeetings: Meeting[]
+  unassignedMeetingsPagination: IPagination | null
+  isAssigningMeeting: boolean
 }
 
 const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
@@ -43,6 +46,9 @@ const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
       from: null,
       to: null,
     },
+    unassignedMeetings: [],
+    unassignedMeetingsPagination: null,
+    isAssigningMeeting: false,
   }),
 
   actions: {
@@ -241,6 +247,37 @@ const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
       } catch (err) {
         this.error = err as AxiosError
         return false
+      }
+    },
+
+    async fetchUnassignedMeetings(page: number = 1) {
+      try {
+        const response = await clientsService.getUnassignedMeetings(page)
+        this.unassignedMeetings = response.data
+        this.unassignedMeetingsPagination = response.pagination
+      } catch (error) {
+        console.error('Error fetching unassigned meetings:', error)
+        this.unassignedMeetings = []
+        this.unassignedMeetingsPagination = null
+      }
+    },
+
+    async assignMeeting(meetingId: string) {
+      if (!this.client) return false
+
+      this.isAssigningMeeting = true
+      try {
+        await clientsService.assignMeetingToClient(meetingId, this.client._id)
+        await Promise.all([
+          this.fetchMeetingsHistory(this.client._id),
+          this.fetchUnassignedMeetings(),
+        ])
+        return true
+      } catch (error) {
+        console.error('Error assigning meeting:', error)
+        return false
+      } finally {
+        this.isAssigningMeeting = false
       }
     },
   },
