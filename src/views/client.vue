@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { format } from 'date-fns'
 import useClientAndBusinessStore from '@/stores/clientAndBusiness'
 import { MeetingStatus, MeetingType } from '@/enums/meetingStatus.enum'
+import TransactionList from './client/TransactionList.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,6 +15,7 @@ const store = useClientAndBusinessStore()
 const toastMessage = ref('');
 const showToast = ref(false);
 let toastTimeout: number | undefined;
+const transactionCurrentPage = ref(1)
 
 const portfolioAccessMeeting = computed(() => {
   if (
@@ -30,7 +32,8 @@ onMounted(async () => {
   await Promise.all([
     store.fetchClientWithDetails(clientId),
     store.fetchMeetingStatus(clientId),
-    store.fetchMeetingsHistory(clientId)
+    store.fetchMeetingsHistory(clientId),
+    store.fetchTransactions(clientId, transactionCurrentPage.value),
   ]);
 })
 
@@ -45,6 +48,11 @@ const triggerToast = (message: string) => {
   toastTimeout = window.setTimeout(() => {
     showToast.value = false;
   }, 2500); // El toast desaparecerá después de 2.5 segundos
+};
+
+const handleFilterChange = async (payload: { from: string | null; to: string | null }) => {
+  await store.setTransactionFilter(clientId, payload);
+  transactionCurrentPage.value = 1;
 };
 
 const copyToClipboard = async (textToCopy: string | undefined) => {
@@ -76,6 +84,26 @@ const getMeetingIcon = (type: MeetingType): string => {
 
   return icons[type] || 'fa-solid fa-calendar-day';
 }
+
+const handlePageChange = (newPage: number) => {
+  transactionCurrentPage.value = newPage
+}
+
+const handleDeleteTransaction = async (transactionId: string) => {
+  const success = await store.removeTransaction(transactionId)
+  if (success) {
+    triggerToast('Transacción eliminada correctamente.')
+    if (store.transactions.length === 0 && transactionCurrentPage.value > 1) {
+      transactionCurrentPage.value--
+    }
+  } else {
+    triggerToast('Error al eliminar la transacción.')
+  }
+}
+
+watch(transactionCurrentPage, (newPage) => {
+  store.fetchTransactions(clientId, newPage)
+})
 </script>
 
 <template>
@@ -157,6 +185,12 @@ const getMeetingIcon = (type: MeetingType): string => {
            </ul>
            <p v-else class="empty-state">No hay reuniones registradas.</p>
         </section>
+        <TransactionList
+          :transactions="store.transactions"
+          :pagination="store.pagination || null" :is-loading="store.isTransactionsLoading"
+          @change-page="handlePageChange"
+          @delete="handleDeleteTransaction"
+          @filter-change="handleFilterChange" />
       </div>
     </div>
     

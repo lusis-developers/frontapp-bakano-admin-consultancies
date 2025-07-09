@@ -1,5 +1,6 @@
 import type { ManualPaymentForm } from '@/types/manualTransfer.interface'
 import APIBase from './httpBase'
+import type { ITransactionApiResponse } from '@/types/transaction.interface'
 
 interface PagopluxPaymentRequest {
   monto: number
@@ -101,6 +102,52 @@ class PaymentsService extends APIBase {
 
   public async registerManualTransfer(data: ManualPaymentForm) {
     return await this.post('webhook/receive-payment', data)
+  }
+
+  /**
+   * Obtiene una lista paginada de transacciones para un cliente específico.
+   * @param clientId - El ID del cliente.
+   * @param page - El número de página a solicitar.
+   * @param limit - El número de resultados por página.
+   * @returns Una promesa que resuelve a un objeto con datos de transacciones y paginación.
+   */
+  public async getTransactionsByClientId(
+    clientId: string,
+    page: number = 1,
+    limit: number = 10,
+    from?: string | null,
+    to?: string | null,
+  ): Promise<ITransactionApiResponse | null> {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      })
+
+      if (from) params.append('from', from)
+      if (to) params.append('to', to)
+
+      const response = await this.get(`clients/${clientId}/transactions?${params.toString()}`)
+      return response.data as ITransactionApiResponse
+    } catch (error) {
+      console.error('[getTransactionsByClientId] Error:', error)
+      return null
+    }
+  }
+
+  /**
+   * Elimina una transacción por su ID.
+   * @param transactionId - El ID de la transacción a eliminar.
+   * @returns Una promesa que resuelve a un booleano indicando el éxito.
+   */
+  public async deleteTransaction(transactionId: string): Promise<boolean> {
+    try {
+      await this.delete(`transactions/${transactionId}`)
+      return true
+    } catch (error) {
+      console.error('[deleteTransaction] Error:', error)
+      return false
+    }
   }
 }
 

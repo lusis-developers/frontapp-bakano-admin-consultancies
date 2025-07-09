@@ -8,15 +8,24 @@ import type { IMeetingStatusResponse } from '@/types/responses/meetingConfirmati
 import type { Meeting } from '@/types/meeting.interface'
 import { businessService } from '@/services/businessService'
 import type { IManager } from '@/types/manager.interface'
+import paymentsService from '@/services/paymentsService'
+import type { IPagination, ITransaction } from '@/types/transaction.interface'
 
 interface RootState {
-  client: (Client & { transactions?: any[] }) | null
+  client: Client | null
   businesses: Business[]
   selectedBusiness: Business | null
   isLoading: boolean
   meetingStatus: IMeetingStatusResponse | null
   error: AxiosError | null
   meetingsHistory: Meeting[] | null
+  transactions: ITransaction[]
+  pagination: IPagination | null
+  isTransactionsLoading: boolean
+  transactionFilter: {
+    from: string | null
+    to: string | null
+  }
 }
 
 const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
@@ -28,13 +37,19 @@ const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
     meetingsHistory: null,
     isLoading: false,
     error: null,
+    transactions: [],
+    pagination: null,
+    isTransactionsLoading: false,
+    transactionFilter: {
+      from: null,
+      to: null,
+    },
   }),
 
   actions: {
     _setClientDetails(clientData: Client) {
       const businesses = Array.isArray(clientData.businesses) ? clientData.businesses : []
-      const transactions = Array.isArray(clientData.transactions) ? clientData.transactions : []
-      this.client = { ...clientData, transactions }
+      this.client = clientData
       this.businesses = businesses
     },
 
@@ -46,12 +61,10 @@ const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
         const { client } = await clientsService.getClientAndBusiness(clientId, businessId)
 
         const businesses = Array.isArray(client.businesses) ? client.businesses : []
-        const transactions = Array.isArray(client.transactions) ? client.transactions : []
 
-        this.client = { ...client, transactions }
+        this.client = client
         this.businesses = businesses
 
-        // ✅ Aquí seleccionamos el negocio manualmente
         this.selectedBusiness = businesses.find((b) => b._id === businessId) || null
       } catch (error: unknown) {
         this.error = error as AxiosError
@@ -63,20 +76,15 @@ const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
     async fetchClientWithDetails(clientId: string): Promise<void> {
       this.isLoading = true
       this.error = null
-
       try {
         const response = await clientsService.getClientWithDetails(clientId)
-
         const businesses = Array.isArray(response.client.businesses)
           ? response.client.businesses
           : []
-        const transactions = Array.isArray(response.client.transactions)
-          ? response.client.transactions
-          : []
 
-        this.client = { ...response.client, transactions }
+        this.client = response.client
         this.businesses = businesses
-        this.selectedBusiness = null // Resetea al entrar desde vista general
+        this.selectedBusiness = null
       } catch (error: unknown) {
         this.error = error as AxiosError
       } finally {
@@ -94,11 +102,8 @@ const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
       this.isLoading = true
       this.error = null
       try {
-        // 1. Llama al backend para ejecutar la acción de confirmar
         await clientsService.confirmStrategyMeeting(this.client._id, portfolioMeetingId)
 
-        // 2. CORRECCIÓN: Volvemos a buscar los datos relevantes para que la UI se actualice.
-        //    Llamamos a las dos acciones que nuestra vista necesita para estar al día.
         await Promise.all([
           this.fetchMeetingStatus(this.client._id),
           this.fetchMeetingsHistory(this.client._id),
@@ -112,14 +117,14 @@ const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
     },
 
     async fetchMeetingStatus(clientId: string): Promise<void> {
-      this.isLoading = true // Reutilizamos el estado de carga
+      this.isLoading = true
       this.error = null
       try {
         const response = await clientsService.getClientMeetingStatus(clientId)
         this.meetingStatus = response.data
       } catch (error: unknown) {
         this.error = error as AxiosError
-        this.meetingStatus = null // En caso de error, lo reseteamos
+        this.meetingStatus = null
       } finally {
         this.isLoading = false
       }
@@ -131,12 +136,11 @@ const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
         this.meetingsHistory = response.data.meetings
       } catch (error) {
         console.error('Error al obtener el historial de reuniones:', error)
-        this.meetingsHistory = [] // En caso de error, dejamos un array vacío
+        this.meetingsHistory = []
       }
     },
 
     async addManager(managerData: Omit<IManager, '_id'>) {
-      // Necesitamos el ID del cliente y del negocio para volver a cargar los datos.
       if (!this.client?._id || !this.selectedBusiness?._id) return
 
       const clientId = this.client._id
@@ -145,10 +149,7 @@ const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
       this.isLoading = true
       this.error = null
       try {
-        // 1. Realizamos la acción de agregar. Ya no necesitamos guardar la respuesta.
         await businessService.addManagerToBusiness(businessId, managerData)
-
-        // 2. Si tiene éxito, volvemos a cargar toda la información fresca.
         await this.fetchClientAndBusiness(clientId, businessId)
       } catch (error) {
         console.error('Error al agregar el manager:', error)
@@ -167,10 +168,7 @@ const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
       this.isLoading = true
       this.error = null
       try {
-        // 1. Realizamos la acción de eliminar.
         await businessService.removeManagerFromBusiness(businessId, managerId)
-
-        // 2. Si tiene éxito, volvemos a cargar toda la información fresca.
         await this.fetchClientAndBusiness(clientId, businessId)
       } catch (error) {
         console.error('Error al eliminar el manager:', error)
@@ -195,9 +193,55 @@ const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
       } catch (error) {
         console.error('Error al actualizar el negocio:', error)
         this.error = error as any
-        throw error // Propagamos el error
+        throw error
       } finally {
         this.isLoading = false
+      }
+    },
+
+    async fetchTransactions(clientId: string, page: number = 1, limit: number = 10) {
+      this.isTransactionsLoading = true
+      try {
+        const response = await paymentsService.getTransactionsByClientId(
+          clientId,
+          page,
+          limit,
+          this.transactionFilter.from,
+          this.transactionFilter.to,
+        )
+        if (response) {
+          this.transactions = response.data
+          this.pagination = response.pagination
+        }
+      } catch (err) {
+        this.error = err as AxiosError
+      } finally {
+        this.isTransactionsLoading = false
+      }
+    },
+
+    async setTransactionFilter(
+      clientId: string,
+      payload: { from: string | null; to: string | null },
+    ) {
+      this.transactionFilter = payload
+      await this.fetchTransactions(clientId, 1)
+    },
+
+    async removeTransaction(transactionId: string) {
+      try {
+        const success = await paymentsService.deleteTransaction(transactionId)
+        if (success) {
+          this.transactions = this.transactions.filter((t) => t._id !== transactionId)
+          if (this.pagination) {
+            this.pagination.total--
+          }
+          return true
+        }
+        return false
+      } catch (err) {
+        this.error = err as AxiosError
+        return false
       }
     },
   },
