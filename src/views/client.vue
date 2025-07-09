@@ -6,17 +6,21 @@ import useClientAndBusinessStore from '@/stores/clientAndBusiness'
 import { MeetingStatus, MeetingType } from '@/enums/meetingStatus.enum'
 import TransactionList from './client/TransactionList.vue'
 import AssignMeeting from './client/AssignMeeting.vue'
+import { useConfirmationDialog } from '@/composables/useConfirmationDialog'
 
 const route = useRoute()
 const router = useRouter()
 const clientId = route.params.clientId as string
 
 const store = useClientAndBusinessStore()
+const { reveal } = useConfirmationDialog();
 
 const toastMessage = ref('');
 const showToast = ref(false);
 let toastTimeout: number | undefined;
 const transactionCurrentPage = ref(1)
+const isConfirmingAccess = ref(false);
+
 
 const portfolioAccessMeeting = computed(() => {
   if (
@@ -28,6 +32,28 @@ const portfolioAccessMeeting = computed(() => {
   }
   return null;
 });
+
+const requestPortfolioConfirmation = async () => {
+  if (!portfolioAccessMeeting.value || !store.client) return;
+
+  try {
+    const confirmed = await reveal({
+      title: 'Confirmar Verificación de Acceso',
+      message: `Estás a punto de confirmar el acceso para el cliente ${store.client.name}. Al hacerlo, se habilitará el siguiente paso: la reunión de estrategia. ¿Deseas continuar?`,
+    });
+
+    if (confirmed) {
+      isConfirmingAccess.value = true;
+      await store.confirmPortfolioAccess(portfolioAccessMeeting.value.id);
+      triggerToast('Acceso confirmado y siguiente paso habilitado.');
+    }
+  } catch (error) {
+    console.log('Confirmación de acceso cancelada por el usuario.');
+  } finally {
+    isConfirmingAccess.value = false;
+  }
+};
+
 
 onMounted(async () => {
   await Promise.all([
@@ -166,8 +192,20 @@ watch(transactionCurrentPage, (newPage) => {
       </div>
 
       <div class="sidebar-column">
-        <section class="card actions-card" v-if="portfolioAccessMeeting">
-          </section>
+       <section class="card actions-card" v-if="portfolioAccessMeeting">
+        <h3>Acciones Pendientes</h3>
+        <p class="action-description">
+          Confirmar que se ha verificado el acceso al portafolio comercial para habilitar la reunión de estrategia.
+        </p>
+        <button @click="requestPortfolioConfirmation" :disabled="isConfirmingAccess" class="confirm-access-button">
+          <span v-if="isConfirmingAccess">
+            <i class="fas fa-spinner fa-spin"></i> Procesando...
+          </span>
+          <span v-else>
+            <i class="fas fa-check-circle"></i> Confirmar Acceso
+          </span>
+        </button>
+      </section>
 
         <section class="card">
            <div class="card-header">
@@ -523,6 +561,34 @@ watch(transactionCurrentPage, (newPage) => {
   transform: translateX(-50%) translateY(20px);
 }
 
+.confirm-access-button {
+  background-color: $BAKANO-GREEN;
+  color: $white;
+  border: none;
+  padding: 0.7rem 1.4rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-family: $font-principal;
+  font-size: 0.9rem;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+
+  &:hover:not(:disabled) {
+    background-color: darken($BAKANO-GREEN, 10%);
+    box-shadow: 0 4px 12px rgba($BAKANO-GREEN, 0.2);
+  }
+
+  &:disabled {
+    background-color: #9e9e9e;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+}
 
 @media (min-width: 1024px) {
   .details-layout {
