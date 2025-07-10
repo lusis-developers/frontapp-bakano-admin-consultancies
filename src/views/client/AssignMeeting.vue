@@ -70,8 +70,10 @@ const requestAssignConfirmation = async (meeting: Meeting) => {
 const formatDate = (date?: string | Date) =>
   date ? format(new Date(date), 'dd MMMM, yyyy HH:mm', { locale: es }) : 'N/A';
 
-const formatRelativeTime = (date?: string | Date) =>
-  date ? formatDistanceToNow(new Date(date), { addSuffix: true, locale: es }) : 'N/A';
+const formatRelativeTime = (date?: string | Date) => {
+  if (!date) return 'N/A';
+  return date ? formatDistanceToNow(new Date(date), { addSuffix: true, locale: es }) : 'N/A';
+}
 
 
 const calculateDuration = (start?: string, end?: string) => {
@@ -132,6 +134,14 @@ onMounted(() => {
                 <span class="detail-label">Creada:</span>
                 <span class="detail-value">{{ formatRelativeTime(meeting.createdAt) }}</span>
               </div>
+              <div class="detail-item">
+                <span class="detail-label">Asistente externo:</span>
+                <span class="detail-value">{{ meeting.attendeeEmail }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Celular de asistente externo:</span>
+                <span class="detail-value">{{ meeting.attendeePhone }}</span>
+              </div>
             </div>
           </Transition>
         </li>
@@ -156,11 +166,13 @@ onMounted(() => {
   margin: 0;
   display: flex;
   flex-direction: column;
+  gap: 0.75rem;
 }
 
 .assign-meeting-item {
   border-bottom: 1px solid $BAKANO-LIGHT;
   transition: background-color 0.2s ease;
+  border-radius: 12px;
 
   &:last-child {
     border-bottom: none;
@@ -168,6 +180,7 @@ onMounted(() => {
 
   &.is-expanded {
     background-color: lighten($BAKANO-LIGHT, 3%);
+    padding: 16px;
   }
 }
 
@@ -241,11 +254,12 @@ onMounted(() => {
 }
 
 .details-panel {
-  padding: 1rem 1rem 1rem 3.75rem; // Alineado con el texto
+  padding: 1rem 12px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
   border-top: 1px dashed $BAKANO-LIGHT;
+  grid-template-columns: 1fr;
 }
 
 .detail-item {
@@ -290,5 +304,11 @@ onMounted(() => {
   font-style: italic;
   background-color: lighten($BAKANO-LIGHT, 3%);
   border-radius: 8px;
+}
+
+@media (min-width: 376px) {
+  .details-panel {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 </style>

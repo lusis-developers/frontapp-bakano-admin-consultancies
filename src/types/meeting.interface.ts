@@ -14,4 +14,6 @@ export interface Meeting {
   sourceId: string
   createdAt: string // Mongoose añade estos campos
   updatedAt: string
+  attendeeEmail?: string
+  attendeePhone?: string
 }
