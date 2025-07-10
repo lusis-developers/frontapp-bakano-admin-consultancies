@@ -37,12 +37,12 @@ const requestAssignConfirmation = async (meeting: Meeting) => {
   let businessIdToAssign: string | null = null;
   const dialogOptions: Parameters<typeof reveal>[0] = {
     title: 'Confirmar Asignación',
-    message: `Estás a punto de asignar la reunión de tipo ${meeting.meetingType} al cliente ${store.client.name}.`,
+    message: `Estás a punto de asignar la reunión de tipo <strong>${meeting.meetingType}</strong> al cliente <strong>${store.client.name}</strong>.`,
   };
 
   if (clientBusinesses.length === 1) {
     businessIdToAssign = clientBusinesses[0]._id;
-    dialogOptions.message += `Se asignará automáticamente al negocio: ${clientBusinesses[0].name}.`;
+    dialogOptions.message += `<br>Se asignará automáticamente al negocio: <strong>${clientBusinesses[0].name}</strong>.`;
   } else if (clientBusinesses.length > 1) {
     dialogOptions.selectionConfig = {
       label: 'Selecciona un negocio para la reunión:',
@@ -51,6 +51,9 @@ const requestAssignConfirmation = async (meeting: Meeting) => {
       valueField: '_id',
     };
   }
+
+  // AÑADIDO: El console.log para depurar
+  console.log("Mensaje enviado al diálogo:", dialogOptions.message);
 
   try {
     const confirmed = await reveal(dialogOptions);
@@ -63,7 +66,6 @@ const requestAssignConfirmation = async (meeting: Meeting) => {
     console.log('Asignación cancelada por el usuario.');
   }
 };
-
 
 const formatDate = (date?: string | Date) =>
   date ? format(new Date(date), 'dd MMMM, yyyy HH:mm', { locale: es }) : 'N/A';

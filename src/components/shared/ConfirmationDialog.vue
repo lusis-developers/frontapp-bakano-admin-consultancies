@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useConfirmationDialog } from '@/composables/useConfirmationDialog';
 
+// Obtenemos todo lo que necesitamos, incluyendo la nueva configuración de selección
 const {
   isVisible,
   title,
@@ -9,7 +10,9 @@ const {
   cancel,
   confirmationText,
   userInput,
-  isConfirmationMet
+  isConfirmationMet,
+  selectionConfig,
+  selectedValue,
 } = useConfirmationDialog();
 </script>
 
@@ -20,7 +23,22 @@ const {
         <Transition name="pop" appear>
           <div v-if="isVisible" class="dialog-panel" role="alertdialog" aria-modal="true" :aria-labelledby="title">
             <h3 class="dialog-title" :id="title">{{ title }}</h3>
-            <p class="dialog-message">{{ message }}</p>
+            <p class="dialog-message" v-html="message"></p>
+
+            <div v-if="selectionConfig" class="selection-area">
+              <label class="selection-label">{{ selectionConfig.label }}</label>
+              <div class="selection-options">
+                <div v-for="item in selectionConfig.items" :key="item[selectionConfig.valueField]" class="selection-option" @click="selectedValue = item[selectionConfig.valueField]">
+                  <input
+                    type="radio"
+                    :id="item[selectionConfig.valueField]"
+                    :value="item[selectionConfig.valueField]"
+                    v-model="selectedValue"
+                  >
+                  <label :for="item[selectionConfig.valueField]">{{ item[selectionConfig.displayField] }}</label>
+                </div>
+              </div>
+            </div>
 
             <div v-if="confirmationText" class="confirmation-input-area">
               <label :for="confirmationText">
@@ -93,7 +111,61 @@ const {
   color: rgba($BAKANO-DARK, 0.7);
   font-size: 0.95rem;
   line-height: 1.6;
-  margin: 0 0 1.5rem 0;
+  margin: 0; // Se quita el margen inferior para dar espacio a las nuevas secciones
+}
+
+// ARREGLO 3: Estilos para la nueva área de selección
+.selection-area {
+  margin: 1.5rem 0;
+  text-align: left;
+}
+
+.selection-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: $font-principal;
+  color: $BAKANO-DARK;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.selection-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 150px;
+  overflow-y: auto;
+  padding-right: 0.5rem; // Espacio para el scrollbar
+}
+
+.selection-option {
+  display: flex;
+  align-items: center;
+  background-color: lighten($BAKANO-LIGHT, 3%);
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid $BAKANO-LIGHT;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:has(input:checked) {
+    border-color: $BAKANO-PURPLE;
+    background-color: $overlay-purple;
+  }
+
+  input[type="radio"] {
+    margin-right: 0.75rem;
+    accent-color: $BAKANO-PURPLE;
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+  }
+
+  label {
+    font-family: $font-secondary;
+    cursor: pointer;
+    flex-grow: 1;
+  }
 }
 
 .confirmation-input-area {
@@ -140,9 +212,10 @@ const {
 
 .dialog-actions {
   display: flex;
-  flex-direction: column-reverse; // Botón primario arriba en móvil
+  flex-direction: column-reverse;
   gap: 0.75rem;
   width: 100%;
+  margin-top: 1.5rem;
 }
 
 .btn {
@@ -153,7 +226,7 @@ const {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  width: 100%; // Ocupan todo el ancho en móvil
+  width: 100%;
 
   &:hover:not(:disabled) {
     transform: translateY(-2px);
@@ -175,7 +248,6 @@ const {
 .btn-secondary {
   background-color: transparent;
   color: $BAKANO-DARK;
-  // Borde sutil en lugar de fondo sólido
   box-shadow: inset 0 0 0 1px $BAKANO-LIGHT;
 
   &:hover:not(:disabled) {
@@ -183,7 +255,6 @@ const {
   }
 }
 
-// Transiciones
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease;
