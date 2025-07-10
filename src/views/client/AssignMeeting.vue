@@ -7,7 +7,7 @@ import type { Meeting } from '@/types/meeting.interface';
 import { es } from 'date-fns/locale';
 
 
-const { reveal } = useConfirmationDialog();
+const { reveal, selectedValue } = useConfirmationDialog();
 
 const store = useClientAndBusinessStore();
 const meetingBeingAssigned = ref<string | null>(null);
@@ -15,15 +15,15 @@ const expandedMeetingId = ref<string | null>(null);
 
 const toggleDetails = (meetingId: string) => {
   if (expandedMeetingId.value === meetingId) {
-    expandedMeetingId.value = null; // Si ya está abierta, la cierra
+    expandedMeetingId.value = null;
   } else {
-    expandedMeetingId.value = meetingId; // Si está cerrada, la abre
+    expandedMeetingId.value = meetingId;
   }
 };
 
-const handleAssign = async (meetingId: string) => {
+const handleAssign = async (meetingId: string, businessId: string | null = null) => {
   meetingBeingAssigned.value = meetingId;
-  const success = await store.assignMeeting(meetingId);
+  const success = await store.assignMeeting(meetingId, businessId);
   if (!success) {
     console.error('Error al asignar la reunión');
   }
@@ -31,24 +31,39 @@ const handleAssign = async (meetingId: string) => {
 };
 
 const requestAssignConfirmation = async (meeting: Meeting) => {
-  try {
-    // El await aquí esperará a que el usuario presione "Confirmar"
-    const confirmed = await reveal({
-      title: 'Confirmar Asignación',
-      message: `Estás a punto de asignar la reunión de tipo "${meeting.meetingType}" al cliente "${store.client?.name}". Esta reunión se considera sin seguimiento y la acción no se puede deshacer.`,
-      confirmationText: 'ASIGNAR'
-    });
+  if (!store.client) return;
 
-    // Este bloque solo se ejecuta si la promesa se RESUELVE (es decir, el usuario confirma)
+  const clientBusinesses = store.businesses || [];
+  let businessIdToAssign: string | null = null;
+  const dialogOptions: Parameters<typeof reveal>[0] = {
+    title: 'Confirmar Asignación',
+    message: `Estás a punto de asignar la reunión de tipo ${meeting.meetingType} al cliente ${store.client.name}.`,
+  };
+
+  if (clientBusinesses.length === 1) {
+    businessIdToAssign = clientBusinesses[0]._id;
+    dialogOptions.message += `Se asignará automáticamente al negocio: ${clientBusinesses[0].name}.`;
+  } else if (clientBusinesses.length > 1) {
+    dialogOptions.selectionConfig = {
+      label: 'Selecciona un negocio para la reunión:',
+      items: clientBusinesses,
+      displayField: 'name',
+      valueField: '_id',
+    };
+  }
+
+  try {
+    const confirmed = await reveal(dialogOptions);
+
     if (confirmed) {
-      await handleAssign(meeting._id);
+      const finalBusinessId = selectedValue.value || businessIdToAssign;
+      await handleAssign(meeting._id, finalBusinessId);
     }
   } catch (error) {
-    // Este bloque se ejecuta si la promesa se RECHAZA (es decir, el usuario cancela)
     console.log('Asignación cancelada por el usuario.');
-    // No necesitamos hacer nada más, el diálogo ya se cerró.
   }
 };
+
 
 const formatDate = (date?: string | Date) =>
   date ? format(new Date(date), 'dd MMMM, yyyy HH:mm', { locale: es }) : 'N/A';

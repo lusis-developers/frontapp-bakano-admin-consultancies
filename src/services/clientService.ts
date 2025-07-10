@@ -88,11 +88,17 @@ class ClientsService extends APIBase {
     return response.data as UnassignedMeetingsResponse
   }
 
-  public async assignMeetingToClient(
+  public async assignMeeting(
     meetingId: string,
     clientId: string,
+    businessId?: string | null, // El businessId es opcional
   ): Promise<{ data: Meeting }> {
-    const response = await this.patch(`client/meetings/${meetingId}/asign`, { clientId })
+    const payload: { clientId: string; businessId?: string } = { clientId }
+    if (businessId) {
+      payload.businessId = businessId
+    }
+    // El endpoint ahora es el unificado
+    const response = await this.patch(`client/meetings/${meetingId}/asign`, payload)
     return response.data as { data: Meeting }
   }
 }

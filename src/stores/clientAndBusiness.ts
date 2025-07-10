@@ -262,12 +262,13 @@ const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
       }
     },
 
-    async assignMeeting(meetingId: string) {
+    async assignMeeting(meetingId: string, businessId?: string | null) {
       if (!this.client) return false
 
       this.isAssigningMeeting = true
       try {
-        await clientsService.assignMeetingToClient(meetingId, this.client._id)
+        await clientsService.assignMeeting(meetingId, this.client._id, businessId)
+
         await Promise.all([
           this.fetchMeetingsHistory(this.client._id),
           this.fetchUnassignedMeetings(),
