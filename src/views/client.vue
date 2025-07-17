@@ -7,20 +7,17 @@ import { MeetingStatus, MeetingType } from '@/enums/meetingStatus.enum'
 import TransactionList from './client/TransactionList.vue'
 import AssignMeeting from './client/AssignMeeting.vue'
 import { useConfirmationDialog } from '@/composables/useConfirmationDialog'
+import { useToast } from '@/composables/useToast'
 
 const route = useRoute()
 const router = useRouter()
-const clientId = route.params.clientId as string
-
 const store = useClientAndBusinessStore()
-const { reveal } = useConfirmationDialog();
+const { reveal } = useConfirmationDialog()
+const { triggerToast } = useToast()
 
-const toastMessage = ref('');
-const showToast = ref(false);
-let toastTimeout: number | undefined;
+const clientId = route.params.clientId as string
 const transactionCurrentPage = ref(1)
-const isConfirmingAccess = ref(false);
-
+const isConfirmingAccess = ref(false)
 
 const portfolioAccessMeeting = computed(() => {
   if (
@@ -28,32 +25,31 @@ const portfolioAccessMeeting = computed(() => {
     store.meetingStatus.meeting?.meetingType === MeetingType.PORTFOLIO_ACCESS &&
     store.meetingStatus.meeting?.status === MeetingStatus.SCHEDULED
   ) {
-    return store.meetingStatus.meeting;
+    return store.meetingStatus.meeting
   }
-  return null;
-});
+  return null
+})
 
 const requestPortfolioConfirmation = async () => {
-  if (!portfolioAccessMeeting.value || !store.client) return;
+  if (!portfolioAccessMeeting.value || !store.client) return
 
   try {
     const confirmed = await reveal({
       title: 'Confirmar Verificación de Acceso',
       message: `Estás a punto de confirmar el acceso para el cliente ${store.client.name}. Al hacerlo, se habilitará el siguiente paso: la reunión de estrategia. ¿Deseas continuar?`,
-    });
+    })
 
     if (confirmed) {
-      isConfirmingAccess.value = true;
-      await store.confirmPortfolioAccess(portfolioAccessMeeting.value.id);
-      triggerToast('Acceso confirmado y siguiente paso habilitado.');
+      isConfirmingAccess.value = true
+      await store.confirmPortfolioAccess(portfolioAccessMeeting.value.id)
+      triggerToast('Acceso confirmado y siguiente paso habilitado.')
     }
   } catch (error) {
-    console.log('Confirmación de acceso cancelada por el usuario.');
+    console.log('Confirmación de acceso cancelada por el usuario.')
   } finally {
-    isConfirmingAccess.value = false;
+    isConfirmingAccess.value = false
   }
-};
-
+}
 
 onMounted(async () => {
   await Promise.all([
@@ -61,44 +57,34 @@ onMounted(async () => {
     store.fetchMeetingStatus(clientId),
     store.fetchMeetingsHistory(clientId),
     store.fetchTransactions(clientId, transactionCurrentPage.value),
-  ]);
+  ])
 })
 
 const formatDate = (date?: string | Date) =>
   date ? format(new Date(date), 'dd MMMM, yyyy HH:mm') : 'No agendada'
 
-
-const triggerToast = (message: string) => {
-  clearTimeout(toastTimeout);
-  toastMessage.value = message;
-  showToast.value = true;
-  toastTimeout = window.setTimeout(() => {
-    showToast.value = false;
-  }, 2500); // El toast desaparecerá después de 2.5 segundos
-};
-
 const handleFilterChange = async (payload: { from: string | null; to: string | null }) => {
-  await store.setTransactionFilter(clientId, payload);
-  transactionCurrentPage.value = 1;
-};
+  await store.setTransactionFilter(clientId, payload)
+  transactionCurrentPage.value = 1
+}
 
 const copyToClipboard = async (textToCopy: string | undefined) => {
-  if (!textToCopy) return;
+  if (!textToCopy) return
   try {
-    await navigator.clipboard.writeText(textToCopy);
-    triggerToast('¡Copiado al portapapeles!'); // Llama a nuestro nuevo sistema de toast
+    await navigator.clipboard.writeText(textToCopy)
+    triggerToast('¡Copiado al portapapeles!')
   } catch (err) {
-    triggerToast('Error al copiar');
-    console.error('Error al copiar:', err);
+    triggerToast('Error al copiar', 'error')
+    console.error('Error al copiar:', err)
   }
 }
 
 const goToBusiness = (businessId: string) => {
-  router.push({ name: 'businessDetails', params: { clientId, businessId } });
+  router.push({ name: 'businessDetails', params: { clientId, businessId } })
 }
 
 const goToAllBusinesses = () => {
-  router.push({ name: 'businesses', params: { clientId } });
+  router.push({ name: 'businesses', params: { clientId } })
 }
 
 const getMeetingIcon = (type: MeetingType): string => {
@@ -106,10 +92,9 @@ const getMeetingIcon = (type: MeetingType): string => {
     [MeetingType.PORTFOLIO_ACCESS]: 'fa-solid fa-folder-open',
     [MeetingType.DATA_STRATEGY]: 'fa-solid fa-chart-pie',
     [MeetingType.FOLLOW_UP]: 'fa-solid fa-clipboard-check',
-    [MeetingType.TECHNICAL_SUPPORT]: 'fa-solid fa-headset'
-  };
-
-  return icons[type] || 'fa-solid fa-calendar-day';
+    [MeetingType.TECHNICAL_SUPPORT]: 'fa-solid fa-headset',
+  }
+  return icons[type] || 'fa-solid fa-calendar-day'
 }
 
 const handlePageChange = (newPage: number) => {
@@ -124,7 +109,7 @@ const handleDeleteTransaction = async (transactionId: string) => {
       transactionCurrentPage.value--
     }
   } else {
-    triggerToast('Error al eliminar la transacción.')
+    triggerToast('Error al eliminar la transacción.', 'error')
   }
 }
 
@@ -180,66 +165,62 @@ watch(transactionCurrentPage, (newPage) => {
             <button @click="goToAllBusinesses" class="btn-subtle">Ver todos</button>
           </div>
           <div class="business-list">
-            <div v-for="business in store.businesses" :key="business._id" class="business-item" @click="goToBusiness(business._id)">
-                <div class="business-info">
-                  <h4>{{ business.name }}</h4>
-                  <p v-if="business.ruc">RUC: {{ business.ruc }}</p>
-                </div>
-                <i class="fas fa-chevron-right arrow-icon"></i>
+            <div
+              v-for="business in store.businesses"
+              :key="business._id"
+              class="business-item"
+              @click="goToBusiness(business._id)"
+            >
+              <div class="business-info">
+                <h4>{{ business.name }}</h4>
+                <p v-if="business.ruc">RUC: {{ business.ruc }}</p>
+              </div>
+              <i class="fas fa-chevron-right arrow-icon"></i>
             </div>
           </div>
         </section>
       </div>
 
       <div class="sidebar-column">
-       <section class="card actions-card" v-if="portfolioAccessMeeting">
-        <h3>Acciones Pendientes</h3>
-        <p class="action-description">
-          Confirmar que se ha verificado el acceso al portafolio comercial para habilitar la reunión de estrategia.
-        </p>
-        <button @click="requestPortfolioConfirmation" :disabled="isConfirmingAccess" class="confirm-access-button">
-          <span v-if="isConfirmingAccess">
-            <i class="fas fa-spinner fa-spin"></i> Procesando...
-          </span>
-          <span v-else>
-            <i class="fas fa-check-circle"></i> Confirmar Acceso
-          </span>
-        </button>
-      </section>
+        <section class="card actions-card" v-if="portfolioAccessMeeting">
+          <h3>Acciones Pendientes</h3>
+          <p class="action-description">
+            Confirmar que se ha verificado el acceso al portafolio comercial para habilitar la reunión de estrategia.
+          </p>
+          <button @click="requestPortfolioConfirmation" :disabled="isConfirmingAccess" class="confirm-access-button">
+            <span v-if="isConfirmingAccess"> <i class="fas fa-spinner fa-spin"></i> Procesando... </span>
+            <span v-else> <i class="fas fa-check-circle"></i> Confirmar Acceso </span>
+          </button>
+        </section>
 
         <section class="card">
-           <div class="card-header">
-             <i class="fas fa-history header-icon"></i>
-             <h3>Historial de Reuniones</h3>
-           </div>
-           <ul v-if="store.meetingsHistory && store.meetingsHistory.length > 0" class="meeting-list">
-              <li v-for="meeting in store.meetingsHistory" :key="meeting.id" class="meeting-item">
-                <i :class="getMeetingIcon(meeting.meetingType)" class="meeting-icon"></i>
-                <div class="meeting-details">
-                    <span class="meeting-type-text">{{ meeting.meetingType }} con {{ meeting.assignedTo }}</span>
-                    <span class="meeting-time">{{ formatDate(meeting.scheduledTime) }}</span>
-                </div>
-                <span class="status-badge" :class="`status-${meeting.status}`">{{ meeting.status }}</span>
-              </li>
-           </ul>
-           <p v-else class="empty-state">No hay reuniones registradas.</p>
+          <div class="card-header">
+            <i class="fas fa-history header-icon"></i>
+            <h3>Historial de Reuniones</h3>
+          </div>
+          <ul v-if="store.meetingsHistory && store.meetingsHistory.length > 0" class="meeting-list">
+            <li v-for="meeting in store.meetingsHistory" :key="meeting.id" class="meeting-item">
+              <i :class="getMeetingIcon(meeting.meetingType)" class="meeting-icon"></i>
+              <div class="meeting-details">
+                <span class="meeting-type-text">{{ meeting.meetingType }} con {{ meeting.assignedTo }}</span>
+                <span class="meeting-time">{{ formatDate(meeting.scheduledTime) }}</span>
+              </div>
+              <span class="status-badge" :class="`status-${meeting.status}`">{{ meeting.status }}</span>
+            </li>
+          </ul>
+          <p v-else class="empty-state">No hay reuniones registradas.</p>
         </section>
         <AssignMeeting />
         <TransactionList
           :transactions="store.transactions"
-          :pagination="store.pagination || null" :is-loading="store.isTransactionsLoading"
+          :pagination="store.pagination || null"
+          :is-loading="store.isTransactionsLoading"
           @change-page="handlePageChange"
           @delete="handleDeleteTransaction"
-          @filter-change="handleFilterChange" />
+          @filter-change="handleFilterChange"
+        />
       </div>
     </div>
-    
-    <Transition name="toast-fade">
-        <div v-if="showToast" class="toast-notification">
-            <i class="fas fa-check-circle"></i>
-            <span>{{ toastMessage }}</span>
-        </div>
-    </Transition>
   </div>
 </template>
 
@@ -428,7 +409,7 @@ watch(transactionCurrentPage, (newPage) => {
   }
 
   .arrow-icon {
-    color: $BAKANO_LIGHT;
+    color: $BAKANO-LIGHT;
     transition: all 0.2s ease;
   }
 
@@ -464,7 +445,6 @@ watch(transactionCurrentPage, (newPage) => {
   margin: -1rem 0 1.5rem 0;
 }
 
-
 .meeting-list {
   list-style: none;
   padding: 0;
@@ -499,13 +479,20 @@ watch(transactionCurrentPage, (newPage) => {
   font-size: 1rem;
 }
 
-
 .meeting-details {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
   overflow: hidden;
 }
+
+// .meeting-type-text {
+//   /* Estilos específicos para este texto si es necesario */
+// }
+
+// .meeting-time {
+//   /* Estilos específicos para la hora si es necesario */
+// }
 
 .status-badge {
   font-family: $font-principal;
@@ -526,39 +513,6 @@ watch(transactionCurrentPage, (newPage) => {
   border: 2px dashed $BAKANO-LIGHT;
   border-radius: 12px;
   margin-top: 1rem;
-}
-
-.toast-notification {
-  position: fixed;
-  bottom: 2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: rgba($BAKANO-DARK, 0.9);
-  color: $white;
-  padding: 0.8rem 1.5rem;
-  border-radius: 2rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-family: $font-secondary;
-  font-weight: 500;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-  z-index: 3000;
-
-  i {
-    color: $BAKANO-GREEN;
-  }
-}
-
-.toast-fade-enter-active,
-.toast-fade-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.toast-fade-enter-from,
-.toast-fade-leave-to {
-  opacity: 0;
-  transform: translateX(-50%) translateY(20px);
 }
 
 .confirm-access-button {
