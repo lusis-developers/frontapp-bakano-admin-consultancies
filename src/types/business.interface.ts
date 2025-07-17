@@ -1,3 +1,4 @@
+import type { BusinessTypeEnum } from '@/enums/businessType.enum'
 import type { IManager } from './manager.interface'
 
 export interface Business {
@@ -9,6 +10,7 @@ export interface Business {
   category?: string
   phone?: string
   email?: string
+  businessType?: BusinessTypeEnum
   website?: string
   createdAt?: string
   updatedAt?: string
