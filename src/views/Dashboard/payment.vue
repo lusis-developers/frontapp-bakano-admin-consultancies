@@ -13,7 +13,6 @@ const isTransferModalOpen = ref(false)
 const isComingSoonModalOpen = ref(false)
 const isLoading = ref(true)
 
-
 const formatDateToLocalYYYYMMDD = (date: Date) => {
   const year = date.getFullYear()
   const month = (date.getMonth() + 1).toString().padStart(2, '0')
@@ -27,6 +26,8 @@ const refreshSummary = async () => {
   const from = new Date(today.getFullYear(), today.getMonth(), 1)
   const to = new Date(today)
   to.setDate(to.getDate() + 1)
+  // Simulamos una pequeña demora para apreciar el estado de carga
+  await new Promise(resolve => setTimeout(resolve, 500));
   await paymentsStore.fetchSummary(formatDateToLocalYYYYMMDD(from), formatDateToLocalYYYYMMDD(to))
   isLoading.value = false
 }
@@ -46,65 +47,59 @@ const totalPaid = computed(() => paidByLink.value + paidByTransfer.value)
 </script>
 
 <template>
-  <main class="dashboard">
-    <div class="dashboard-content">
+  <main class="dashboard-payment">
+    <header class="dashboard-header">
       <h1 class="dashboard-title">{{ welcomeMessage }}</h1>
+      <p class="dashboard-subtitle">Resumen de la actividad de pagos del mes actual.</p>
+    </header>
 
-      <div v-if="isLoading" class="loading-message">
-        <i class="fas fa-spinner fa-spin"></i> Cargando resumen del mes actual...
-      </div>
+    <div v-if="isLoading" class="loading-container">
+      <div class="spinner"></div>
+      <p>Cargando resumen...</p>
+    </div>
 
-      <div v-else class="dashboard-stats">
+    <div v-else class="dashboard-content">
+      <section class="stats-grid">
         <div class="stat-card">
-          <i class="fas fa-link"></i>
-          <h3>Links de Pago Generados</h3>
+          <div class="icon-wrapper links"><i class="fas fa-link"></i></div>
           <p class="stat-number">{{ paymentsStore.summary?.intents.totalCount || 0 }}</p>
+          <h3 class="stat-title">Links Generados</h3>
         </div>
         <div class="stat-card">
-          <i class="fas fa-check-circle"></i>
-          <h3>Pagos Completados</h3>
+          <div class="icon-wrapper completed"><i class="fas fa-check-circle"></i></div>
           <p class="stat-number">{{ totalPaid }}</p>
+          <h3 class="stat-title">Pagos Completados</h3>
         </div>
         <div class="stat-card">
-          <i class="fas fa-bolt"></i>
-          <h3>Pagos por Link</h3>
+          <div class="icon-wrapper by-link"><i class="fas fa-bolt"></i></div>
           <p class="stat-number">{{ paidByLink }}</p>
+          <h3 class="stat-title">Pagos por Link</h3>
         </div>
         <div class="stat-card">
-          <i class="fas fa-university"></i>
-          <h3>Pagos por Transferencia</h3>
+          <div class="icon-wrapper transfer"><i class="fas fa-university"></i></div>
           <p class="stat-number">{{ paidByTransfer }}</p>
+          <h3 class="stat-title">Por Transferencia</h3>
         </div>
         <div class="stat-card">
-          <i class="fas fa-clock"></i>
-          <h3>Pagos Pendientes</h3>
+          <div class="icon-wrapper pending"><i class="fas fa-clock"></i></div>
           <p class="stat-number">{{ paymentsStore.summary?.intents.pending.count || 0 }}</p>
+          <h3 class="stat-title">Pagos Pendientes</h3>
         </div>
-      </div>
+      </section>
 
-      <div class="actions-container">
-        <button class="action-button" @click="isComingSoonModalOpen = true">
+      <section class="actions-container">
+        <button class="action-button primary" @click="isComingSoonModalOpen = true">
           <i class="fas fa-plus"></i> Nueva Solicitud de Pago
         </button>
-        <button class="action-button" @click="isTransferModalOpen = true">
+        <button class="action-button secondary" @click="isTransferModalOpen = true">
           <i class="fas fa-money-check-alt"></i> Registrar Pago Manual
         </button>
-      </div>
+      </section>
     </div>
   </main>
 
-  <GeneratePaymentLink
-    :is-open="isPaymentModalOpen"
-    @close="isPaymentModalOpen = false"
-    @success="handlePaymentSuccess"
-  />
-
-  <ManualTransferWizard
-    :is-open="isTransferModalOpen"
-    @close="isTransferModalOpen = false"
-    @success="handlePaymentSuccess"
-  />
-
+  <GeneratePaymentLink :is-open="isPaymentModalOpen" @close="isPaymentModalOpen = false" @success="handlePaymentSuccess" />
+  <ManualTransferWizard :is-open="isTransferModalOpen" @close="isTransferModalOpen = false" @success="handlePaymentSuccess" />
   <InfoModal :is-open="isComingSoonModalOpen" @close="isComingSoonModalOpen = false">
     <i class="fas fa-cogs info-modal-icon"></i>
     <h2 class="info-modal-title">¡Función en Camino!</h2>
@@ -117,77 +112,139 @@ const totalPaid = computed(() => paidByLink.value + paidByTransfer.value)
 <style lang="scss" scoped>
 @use '@/styles/index.scss' as *;
 
-.dashboard {
+.dashboard-payment {
   padding: 2rem;
-  background-color: $white;
-  border-radius: 8px;
+  background-color: lighten($white, 3.5%);
+}
 
-  &-content {
-    max-width: 1200px;
-    margin: 0 auto;
-  }
+.dashboard-header {
+  max-width: 1200px;
+  margin: 0 auto 2.5rem auto;
+  text-align: center;
 
-  &-title {
-    font-size: 2rem;
+  .dashboard-title {
+    font-family: $font-principal;
+    font-size: 2.25rem;
     color: $BAKANO-DARK;
-    margin-bottom: 2rem;
     font-weight: 700;
+    margin: 0 0 0.5rem 0;
   }
 
-  &-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+  .dashboard-subtitle {
+    font-family: $font-secondary;
+    font-size: 1.1rem;
+    color: rgba($BAKANO-DARK, 0.7);
+    margin: 0;
   }
 }
 
-.loading-message {
-  text-align: center;
-  font-size: 1.1rem;
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1rem;
+  gap: 1rem;
+  font-family: $font-secondary;
   color: rgba($BAKANO-DARK, 0.7);
-  margin: 2rem 0;
 
-  i {
-    margin-right: 0.5rem;
-    color: $BAKANO-PINK;
+  .spinner {
+    width: 86px;
+    height: 86px;
+    border: 5px solid $overlay-purple;
+    border-top-color: $BAKANO-PURPLE;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
   }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.dashboard-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
 }
 
 .stat-card {
   background: $white;
   padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba($BAKANO-PINK, 0.1);
+  border-radius: 16px;
+  border: 1px solid $BAKANO-LIGHT;
   text-align: center;
-  transition: transform 0.3s ease;
+  transition: all 0.3s ease;
 
   &:hover {
-    transform: translateY(-5px);
+    transform: translateY(-5px) scale(1.03);
+    box-shadow: 0 10px 30px rgba($BAKANO-DARK, 0.08);
   }
 
-  i {
-    font-size: 2rem;
-    color: $BAKANO-PINK;
-    margin-bottom: 1rem;
-  }
+  .icon-wrapper {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    margin: 0 auto 1.5rem auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
 
-  h3 {
-    color: $BAKANO-DARK;
-    font-size: 1.1rem;
-    margin-bottom: 0.5rem;
+    &.links {
+      background-color: $overlay-purple;
+      color: $BAKANO-PURPLE;
+    }
+
+    &.completed {
+      background-color: lighten($BAKANO-GREEN, 35%);
+      color: $BAKANO-GREEN;
+    }
+
+    &.by-link {
+      background-color: lighten(orange, 35%);
+      color: orange;
+    }
+
+    &.transfer {
+      background-color: lighten(royalblue, 35%);
+      color: royalblue;
+    }
+
+    &.pending {
+      background-color: lighten($BAKANO-PINK, 40%);
+      color: $BAKANO-PINK;
+    }
   }
 
   .stat-number {
-    font-size: 2rem;
+    font-family: $font-principal;
+    font-size: 2.5rem;
     font-weight: 700;
-    color: $BAKANO-PINK;
+    color: $BAKANO-DARK;
+    margin: 0 0 0.25rem 0;
+  }
+
+  .stat-title {
+    font-family: $font-secondary;
+    color: rgba($BAKANO-DARK, 0.6);
+    font-size: 1rem;
+    font-weight: 500;
+    margin: 0;
   }
 }
 
 .actions-container {
-  margin-top: 2rem;
-  text-align: center;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid $BAKANO-LIGHT;
   display: flex;
   justify-content: center;
   gap: 1.5rem;
@@ -195,22 +252,36 @@ const totalPaid = computed(() => paidByLink.value + paidByTransfer.value)
 }
 
 .action-button {
-  background: $BAKANO-PINK;
-  color: $white;
-  border: none;
-  padding: 1rem 2rem;
-  border-radius: 8px;
+  font-family: $font-principal;
   font-size: 1.1rem;
   font-weight: 600;
+  border: 2px solid $BAKANO-PINK;
+  padding: 0.9rem 2rem;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
 
-  &:hover {
-    background: darken($BAKANO-PINK, 5%);
-    transform: translateY(-2px);
+  &.primary {
+    background: $BAKANO-PINK;
+    color: $white;
+
+    &:hover {
+      background: darken($BAKANO-PINK, 8%);
+      transform: translateY(-2px);
+    }
+  }
+
+  &.secondary {
+    background: transparent;
+    color: $BAKANO-PINK;
+
+    &:hover {
+      background: $BAKANO-PINK;
+      color: $white;
+    }
   }
 
   i {
@@ -218,8 +289,6 @@ const totalPaid = computed(() => paidByLink.value + paidByTransfer.value)
   }
 }
 
-// Estilos para el contenido dentro del InfoModal
-// Usamos :deep() para aplicar estilos al contenido del slot desde el padre
 :deep(.info-modal-icon) {
   font-size: 3rem;
   color: $BAKANO-PINK;
@@ -239,12 +308,17 @@ const totalPaid = computed(() => paidByLink.value + paidByTransfer.value)
   line-height: 1.6;
 }
 
-
 @media (max-width: 768px) {
-  .dashboard {
+  .dashboard-payment {
     padding: 1rem;
-    margin: 1rem;
+  }
+
+  .dashboard-header {
+    margin-bottom: 2rem;
+  }
+
+  .stats-grid {
+    gap: 1rem;
   }
 }
 </style>
-```
