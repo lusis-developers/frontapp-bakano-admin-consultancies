@@ -12,8 +12,6 @@ const emit = defineEmits<{
 }>()
 const allClients = ref<Client[]>([])
 const isLoading = ref(true)
-const selectedClientId = ref<string | null>(null)
-
 const isExistingClient = ref(false)
 
 onMounted(async () => {
@@ -29,43 +27,32 @@ onMounted(async () => {
   }
 })
 
-const searchClientsOnFrontend = (query: string): Client[] => {
-  if (!query) return []
-  const lowerCaseQuery = query.toLowerCase().trim()
-  return allClients.value.filter(
-    (client) =>
-      client.name.toLowerCase().includes(lowerCaseQuery) ||
-      client.email.toLowerCase().includes(lowerCaseQuery),
-  )
-}
-
-const handleClientSelected = (client: Client | null) => {
-  if (client) {
-    const updatedForm: ManualPaymentForm = {
+const handleClientSelected = (selectedItem: Client | null) => {
+  if (selectedItem) {
+    emit('update:form', {
       ...props.form,
-      clientName: client.name,
-      email: client.email,
-      phone: client.phone || '',
-      clientId: client.nationalIdentification,
-      country: client.country || 'ecuador',
-      mongoId: client._id,
-    }
-    emit('update:form', updatedForm)
+      clientName: selectedItem.name,
+      email: selectedItem.email,
+      phone: selectedItem.phone || '',
+      clientId: selectedItem.nationalIdentification,
+      country: selectedItem.country || 'ecuador',
+      mongoId: selectedItem._id,
+    })
   }
 }
 
 const resetClientFields = () => {
-  const updatedForm = {
+  emit('update:form', {
     ...props.form,
-    mongoId: undefined,
+    mongoId: null, // Reseteamos a null, no a undefined
     clientName: '',
     email: '',
     phone: '',
     clientId: '',
-  }
-  emit('update:form', updatedForm)
+  })
 }
 
+// El resto del script no necesita más cambios...
 watch(isExistingClient, (isExisting) => {
   if (!isExisting) {
     resetClientFields()
@@ -113,8 +100,8 @@ const handleInputChange = (field: keyof ManualPaymentForm, value: string) => {
       <div v-if="isLoading" class="loading-placeholder">Cargando clientes...</div>
       <SearchableSelect
         v-else
-        v-model="selectedClientId"
-        :search-function="searchClientsOnFrontend"
+        :model-value="form.mongoId!"
+        :items="allClients"
         label-field="name"
         value-field="_id"
         placeholder="Buscar cliente por nombre o email..."
@@ -200,15 +187,22 @@ h3 {
   input[type='text'],
   input[type='email'],
   input[type='tel'] {
-    padding: 0.6rem;
-    border: 1px solid rgba($BAKANO-PURPLE, 0.3);
-    border-radius: 8px;
+    font-family: $font-secondary;
+    padding: 0.75rem 1rem;
     font-size: 1rem;
-    transition: border 0.2s ease;
+    background-color: $white;
+    border: 1.5px solid rgba($BAKANO-DARK, 0.1);
+    border-radius: 10px;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 
     &:focus {
-      outline: none;
+      outline: 0;
       border-color: $BAKANO-PINK;
+      box-shadow: 0 0 0 3px rgba($BAKANO-PINK, 0.15);
+      background-color: #fff;
     }
   }
 }
@@ -223,7 +217,7 @@ h3 {
   padding-bottom: 1rem;
 
   label {
-    margin-bottom: 0; // Reset margin for this specific label
+    margin-bottom: 0;
     font-weight: 500;
     cursor: pointer;
   }
@@ -232,6 +226,7 @@ h3 {
     width: 1.2em;
     height: 1.2em;
     cursor: pointer;
+    accent-color: $BAKANO-PINK;
   }
 }
 
@@ -243,10 +238,10 @@ h3 {
 }
 
 .loading-placeholder {
-  padding: 0.6rem;
-  border: 1px solid rgba($BAKANO-PURPLE, 0.3);
-  border-radius: 8px;
-  background-color: #f7f7f7;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid rgba($BAKANO-DARK, 0.1);
+  border-radius: 10px;
+  background-color: #f9f9f9;
   color: #888;
   font-size: 1rem;
   text-align: center;
