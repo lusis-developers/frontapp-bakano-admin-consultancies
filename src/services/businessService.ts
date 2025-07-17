@@ -37,6 +37,16 @@ class BusinessService extends APIBase {
     // La respuesta del backend devuelve el objeto de negocio actualizado
     return this.delete<{ data: Business }>(`business/${businessId}/managers/${managerId}`)
   }
+
+  /**
+   * Elimina un negocio de forma permanente.
+   * Corresponde a: DELETE /business/:businessId
+   */
+  deleteBusiness(businessId: string) {
+    // La respuesta del backend debería ser un mensaje de éxito.
+    // Usamos un tipo genérico `any` o una interfaz específica si la tienes.
+    return this.delete<{ message: string }>(`business/${businessId}`)
+  }
 }
 
 export const businessService = new BusinessService()
