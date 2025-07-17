@@ -6,8 +6,8 @@ import Step2 from './steps/step2.vue'
 import Step3 from './steps/step3.vue'
 import Step4 from './steps/step4.vue'
 import paymentService from '@/services/paymentsService'
-// AHORA: Importamos el enum y la interfaz corregida
 import ConfirmCloseModal from '@/components/modals/confirmCloseModal.vue'
+
 import type { ManualPaymentForm } from '@/types/manualTransfer.interface'
 import { PayMethod } from '@/enums/payMethod.enum'
 
@@ -15,8 +15,8 @@ const props = defineProps<{ isOpen: boolean }>()
 const emit = defineEmits<{ (e: 'close'): void; (e: 'success'): void }>()
 
 const currentStep = ref(0)
-// AHORA: El formulario usa la interfaz renombrada
-const form = ref<ManualPaymentForm>({
+
+const getInitialFormState = (): ManualPaymentForm => ({
   amount: 0,
   description: '',
   clientName: '',
@@ -27,7 +27,11 @@ const form = ref<ManualPaymentForm>({
   clientId: '',
   country: 'ecuador',
   paymentMethod: null,
+  businessType: null, // <-- ESTA LÍNEA ES LA SOLUCIÓN PRINCIPAL
+  mongoId: null,
 })
+
+const form = ref<ManualPaymentForm>(getInitialFormState())
 
 const isLoading = ref(false)
 const error = ref('')
@@ -38,27 +42,26 @@ const showConfirmClose = ref(false)
 
 const steps = [0, 1, 2, 3, 4]
 
-// CORRECCIÓN: Se invalida el paso antes de avanzar para evitar doble-clic
 const nextStep = () => {
   if (stepValid.value && currentStep.value < steps.length - 1) {
-    stepValid.value = false; // Invalida temporalmente hasta que el nuevo paso se valide
+    stepValid.value = false
     currentStep.value++
   }
 }
-const prevStep = () => { if (currentStep.value > 0) currentStep.value-- }
+const prevStep = () => {
+  if (currentStep.value > 0) currentStep.value--
+}
 
 const wizardTitle = computed(() => {
   if (currentStep.value === 0) return 'Registrar Pago Manual'
-  // AHORA: Comparamos con los valores del enum
   if (form.value.paymentMethod === PayMethod.DATIL) return 'Registro por Dátil'
   if (form.value.paymentMethod === PayMethod.BANK_TRANSFER) return 'Registro por Transferencia'
   return 'Registrar Pago'
 })
 
-// AHORA: El handler recibe el tipo del enum
 const handleMethodSelect = (method: PayMethod) => {
   form.value.paymentMethod = method
-  stepValid.value = true // Este paso es válido una vez se selecciona
+  stepValid.value = true
   nextStep()
 }
 
@@ -66,7 +69,6 @@ const handleSubmit = async () => {
   isLoading.value = true
   error.value = ''
   try {
-    // SUGERENCIA: Renombrar este servicio a 'registerManualPayment' sería ideal
     await paymentService.registerManualTransfer(form.value)
     success.value = true
     wasConfirmed.value = true
@@ -95,34 +97,24 @@ const cancelClose = () => {
 }
 
 const isDirty = computed(() => {
-  return Object.entries(form.value).some(([key, value]) => {
-    if (key === 'paymentMethod' || key === 'country') return false
-    return value !== '' && value !== 0
-  })
+  return JSON.stringify(form.value) !== JSON.stringify(getInitialFormState())
 })
 
-watch(() => props.isOpen, (isOpen) => {
-  if (isOpen) {
-    currentStep.value = 0
-    stepValid.value = false
-    success.value = false
-    wasConfirmed.value = false
-    error.value = ''
-    isLoading.value = false
-    form.value = {
-      amount: 0,
-      description: '',
-      clientName: '',
-      email: '',
-      phone: '',
-      businessName: '',
-      bank: '',
-      clientId: '',
-      country: 'ecuador',
-      paymentMethod: null,
+// Usamos la función para resetear el estado y mantenerlo consistente.
+watch(
+  () => props.isOpen,
+  (isOpen) => {
+    if (isOpen) {
+      currentStep.value = 0
+      stepValid.value = false
+      success.value = false
+      wasConfirmed.value = false
+      error.value = ''
+      isLoading.value = false
+      form.value = getInitialFormState()
     }
   }
-})
+)
 </script>
 
 <template>
@@ -135,7 +127,8 @@ watch(() => props.isOpen, (isOpen) => {
 
       <div v-if="currentStep > 0" class="steps-indicator">
         <div
-          v-for="step in steps.slice(1)" :key="step"
+          v-for="step in steps.slice(1)"
+          :key="step"
           :class="['step', { 'step--active': currentStep === step, 'step--completed': currentStep > step }]"
         >
           <div class="step-number">{{ step }}</div>
@@ -144,7 +137,7 @@ watch(() => props.isOpen, (isOpen) => {
 
       <form class="wizard-form">
         <Step0 v-if="currentStep === 0" @select="handleMethodSelect" />
-        <Step1 v-if="currentStep === 1" v-model:form="form" @valid="stepValid = $event" />
+        <Step1 v-if="currentStep === 1" :form="form" @update:form="form = $event" @valid="stepValid = $event" />
         <Step2 v-if="currentStep === 2" :form="form" @valid="stepValid = $event" />
         <Step3 v-if="currentStep === 3" :form="form" @valid="stepValid = $event" />
         <Step4
@@ -153,7 +146,7 @@ watch(() => props.isOpen, (isOpen) => {
           :is-loading="isLoading"
           :was-confirmed="wasConfirmed"
           @confirm="handleSubmit"
-          @edit="() => { currentStep = 1 }"
+          @edit="() => (currentStep = 1)"
           @close="tryToClose"
         />
 
@@ -289,7 +282,7 @@ watch(() => props.isOpen, (isOpen) => {
     border-radius: 8px;
     font-size: 0.95rem;
     font-family: $font-principal;
-    background-color: $BAKANO-LIGHT;
+    background-color: lighten($BAKANO-LIGHT, 2%);
 
     &:focus {
       outline: none;
