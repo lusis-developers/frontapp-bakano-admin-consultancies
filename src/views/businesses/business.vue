@@ -1,17 +1,23 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import useClientAndBusinessStore from '@/stores/clientAndBusiness'
 import type { IManager } from '@/types/manager.interface'
 import ManagersCard from './components/ManagersCard.vue'
 import EditBusinessModal from './components/EditBusinessModal.vue'
 import type { Business } from '@/types/business.interface'
+import DangerZone from '@/views/businesses/components/DangerZone.vue'
+import { useConfirmationDialog } from '@/composables/useConfirmationDialog'
+import { useToast } from '@/composables/useToast'
 
 const route = useRoute()
+const router = useRouter()
 const clientId = route.params.clientId as string
 const businessId = route.params.businessId as string
 
 const store = useClientAndBusinessStore()
+const { reveal } = useConfirmationDialog()
+const { triggerToast } = useToast()
 
 const copiedField = ref<string | null>(null)
 const isEditModalVisible = ref(false)
@@ -34,9 +40,9 @@ const handleSaveChanges = async (updatedData: Partial<Business>) => {
   try {
     await store.updateBusinessDetails(updatedData);
     isEditModalVisible.value = false;
-    console.log('estamos guardando')
+    triggerToast('Negocio actualizado exitosamente.', 'success')
   } catch (error) {
-    alert('No se pudieron guardar los cambios.');
+    triggerToast('Negocio actualizado exitosamente.', 'success')
   }
 };
 
@@ -45,6 +51,29 @@ const handleAddManager = async (managerData: Omit<IManager, '_id'>) => {
 }
 const handleRemoveManager = async (managerId: string) => {
   await store.removeManager(managerId)
+}
+
+const handleDeleteBusiness = async () => {
+  if (!store.selectedBusiness) return
+
+  try {
+    await reveal({
+      title: '¿Estás absolutamente seguro?',
+      message: `Esta acción eliminará permanentemente el negocio <strong>${store.selectedBusiness.name}</strong>. Todos sus datos, archivos y accesos se perderán.`,
+      confirmationText: `ELIMINAR ${store.selectedBusiness.name}`,
+    })
+
+    const success = await store.deleteBusiness(businessId)
+
+    if (success) {
+      triggerToast('Negocio eliminado exitosamente.', 'success')
+      router.push({ name: 'businesses', params: { clientId } })
+    } else {
+      triggerToast(`Error: ${store.error?.message || 'No se pudo eliminar el negocio.'}`, 'error')
+    }
+  } catch (error) {
+    console.log('Eliminación de negocio cancelada por el usuario.')
+  }
 }
 
 const menuPaths = computed(() => {
@@ -68,17 +97,17 @@ onMounted(async () => {
   <div class="business-details-view">
     <h1 class="page-title">Detalles del Negocio</h1>
 
-     <button v-if="store.selectedBusiness" @click="isEditModalVisible = true" class="btn btn-primary">
-        <i class="fas fa-pencil-alt"></i> Editar Negocio
-      </button>
+    <button v-if="store.selectedBusiness" @click="isEditModalVisible = true" class="btn btn-primary">
+      <i class="fas fa-pencil-alt"></i> Editar Negocio
+    </button>
 
     <div v-if="store.isLoading && !store.selectedBusiness" class="loading-state">
       <i class="fas fa-spinner fa-spin"></i> Cargando información...
     </div>
-    <div v-else-if="store.error" class="error-state">
-      <p><strong>Error al cargar los datos</strong></p>
-      <p>{{ store.error.message }}</p>
-    </div>
+      <div v-else-if="store.error" class="error-state">
+        <p><strong>Error al cargar los datos</strong></p>
+        <p>{{ store.error.message }}</p>
+      </div>
 
     <div v-else-if="store.selectedBusiness" class="details-grid">
       <div class="card info-card">
@@ -118,16 +147,24 @@ onMounted(async () => {
           @remove-manager="handleRemoveManager"
         />
       </div>
-      </div>
-        <EditBusinessModal
-          v-if="store.selectedBusiness"
-          :is-visible="isEditModalVisible"
-          :business="store.selectedBusiness"
-          @close="isEditModalVisible = false"
-          @save="handleSaveChanges"
+    </div>
+    <EditBusinessModal
+        v-if="store.selectedBusiness"
+        :is-visible="isEditModalVisible"
+        :business="store.selectedBusiness"
+        @close="isEditModalVisible = false"
+        @save="handleSaveChanges"
+        :is-loading="store.isLoading"
+    />
+    <div v-if="store.selectedBusiness" class="details-warn">
+      <div class="card-wrapper full-width">
+        <DangerZone
           :is-loading="store.isLoading"
+          @delete-business="handleDeleteBusiness"
         />
       </div>
+    </div>
+  </div>
 </template>
 
 <style scoped lang="scss">
@@ -195,6 +232,7 @@ onMounted(async () => {
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: space-around;
+    margin-bottom: 48px;
 
     >*:nth-child(1),
     >*:nth-child(2) {
@@ -206,6 +244,12 @@ onMounted(async () => {
       width: 90%;
     }
   }
+}
+
+.details-warn {
+  width: 95%;
+  margin: 0 auto;
+  margin-top: 48px;
 }
 
 .card,
