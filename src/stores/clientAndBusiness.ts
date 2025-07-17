@@ -281,6 +281,25 @@ const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
         this.isAssigningMeeting = false
       }
     },
+
+    async deleteBusiness(businessId: string): Promise<boolean> {
+      this.isLoading = true
+      this.error = null
+      try {
+        await businessService.deleteBusiness(businessId)
+
+        this.selectedBusiness = null
+        this.businesses = this.businesses.filter((b) => b._id !== businessId)
+
+        return true
+      } catch (error: unknown) {
+        this.error = error as AxiosError
+        console.error('Error al eliminar el negocio:', error)
+        return false
+      } finally {
+        this.isLoading = false
+      }
+    },
   },
 })
 
