@@ -5,7 +5,8 @@ import PaymentsDashboard from './Dashboard/payment.vue'
 import ClientsDashboard from './Dashboard/clients.vue'
 import PaymentChart from '@/components/charts/paymentChart.vue'
 
-const currentTab = ref<'payments' | 'clients'>('payments')
+const currentTab = ref<'payments' | 'clients'>('clients')
+
 const paymentsStore = usePaymentsStore()
 const isLoading = ref(true)
 
@@ -40,17 +41,17 @@ const pending = computed(() => paymentsStore.summary?.intents.pending.count || 0
 <template>
   <div class="dashboard-wrapper">
     <nav class="dashboard-menu">
-      <button :class="{ active: currentTab === 'payments' }" @click="currentTab = 'payments'">
-        <i class="fas fa-file-invoice-dollar"></i> Pagos
-      </button>
       <button :class="{ active: currentTab === 'clients' }" @click="currentTab = 'clients'">
         <i class="fas fa-users"></i> Clientes
+      </button>
+      <button :class="{ active: currentTab === 'payments' }" @click="currentTab = 'payments'">
+        <i class="fas fa-file-invoice-dollar"></i> Pagos
       </button>
     </nav>
 
     <div class="dashboard-view">
-      <PaymentsDashboard v-if="currentTab === 'payments'" />
-      <ClientsDashboard v-else />
+      <ClientsDashboard v-if="currentTab === 'clients'" />
+      <PaymentsDashboard v-else />
     </div>
     <div class="dashboard-chart-wrapper" v-if="currentTab === 'payments' && !isLoading">
       <h2 class="title">Distribución de Pagos</h2>
