@@ -21,6 +21,11 @@ interface UnassignedMeetingsResponse {
   pagination: IPagination
 }
 
+interface UnifiedSearchResponse {
+  data: Client[]
+  pagination: IPagination
+}
+
 class ClientsService extends APIBase {
   private static instance: ClientsService
 
@@ -100,6 +105,27 @@ class ClientsService extends APIBase {
     // El endpoint ahora es el unificado
     const response = await this.patch(`client/meetings/${meetingId}/asign`, payload)
     return response.data as { data: Meeting }
+  }
+
+  /**
+   * @description Llama al endpoint de búsqueda unificada.
+   * @param query - El término de búsqueda.
+   * @param page - El número de página.
+   * @param limit - El número de resultados por página.
+   */
+  public async search(
+    query: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<UnifiedSearchResponse> {
+    const params = new URLSearchParams({
+      q: query,
+      page: page.toString(),
+      limit: limit.toString(),
+    })
+
+    const response = await this.get<UnifiedSearchResponse>(`search?${params.toString()}`)
+    return response.data
   }
 }
 

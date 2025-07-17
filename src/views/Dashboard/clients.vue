@@ -1,79 +1,104 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, onUnmounted, watch } from 'vue'
 import { format } from 'date-fns'
-import ClientsService from '@/services/clientService'
+import { useSearchStore } from '@/stores/search'
+import { useRouter } from 'vue-router'
+import GlobalSearchBar from '@/components/shared/GlobalSearchBar.vue'
 
-interface Client {
-  _id: string
-  name: string
-  email: string
-  phone: string
-  country: string
-  city: string
-  dateOfBirth: string
-  createdAt: string
-  updatedAt: string
-  paymentInfo: {
-    preferredMethod: string
-    lastPaymentDate: string
-    cardType: string
-    cardInfo: string
-    bank: string
+const router = useRouter()
+const searchStore = useSearchStore()
+
+watch(
+  () => searchStore.state.searchTerm,
+  (newTerm) => {
+    searchStore.executeSearch(newTerm)
   }
-}
-
-const clients = ref<Client[]>([])
-const isLoading = ref(true)
-
-const fetchClients = async () => {
-  isLoading.value = true
-  try {
-    const response = await ClientsService.getAllClients()
-    clients.value = (response as { data: Client[] }).data
-  } catch (err) {
-    console.error('Error cargando clientes:', err)
-  } finally {
-    isLoading.value = false
-  }
-}
+)
 
 onMounted(() => {
-  fetchClients()
+  if (!searchStore.state.searchTerm) {
+    searchStore.fetchAllClients()
+  }
 })
 
-const formatDate = (date: string) => format(new Date(date), 'dd MMM yyyy HH:mm')
+onUnmounted(() => {
+  searchStore.executeSearch('')
+})
+
+const formatDate = (date: string) => (date ? format(new Date(date), 'dd MMM yyyy HH:mm') : '')
 </script>
 
 <template>
   <div class="clients-dashboard">
-    <h2 class="section-title">Últimos Clientes</h2>
+    <div class="header-container">
+      <h2 v-if="!searchStore.state.searchTerm" class="section-title">Últimos Clientes</h2>
+      <h2 v-else class="section-title">Resultados de la Búsqueda</h2>
 
-    <div v-if="isLoading" class="loading">
-      <i class="fas fa-spinner fa-spin"></i> Cargando clientes...
+      <GlobalSearchBar
+        v-model="searchStore.state.searchTerm"
+        placeholder="Buscar por cliente, negocio, email, RUC..."
+        :is-loading="searchStore.state.isLoading"
+      />
     </div>
 
-    <div v-else-if="clients.length === 0" class="empty-state">
-      No hay clientes registrados.
+    <div v-if="searchStore.state.isLoading" class="loading">
+      <i class="fas fa-spinner fa-spin"></i>
+      <span v-if="searchStore.state.searchTerm">Buscando...</span>
+      <span v-else>Cargando clientes...</span>
     </div>
 
-    <div v-else class="clients-list">
-      <div class="client-card" v-for="client in clients" :key="client._id"
-       @click="$router.push(`/client/${client._id}`)"
+    <div v-else-if="searchStore.state.displayList.length > 0" class="clients-list">
+      <div
+        class="client-card"
+        v-for="client in searchStore.state.displayList"
+        :key="client._id"
+        @click="router.push(`/client/${client._id}`)"
       >
         <i class="fas fa-arrow-up-right-from-square open-link-icon"></i>
-
         <div class="client-info">
           <h3>{{ client.name }}</h3>
           <p><strong>Correo:</strong> {{ client.email }}</p>
           <p><strong>Teléfono:</strong> {{ client.phone }}</p>
-          <p><strong>Ubicación:</strong> {{ client.city }}, {{ client.country }}</p>
         </div>
-        <div class="payment-info">
+        <div v-if="client.paymentInfo" class="payment-info">
           <p><strong>Último Pago:</strong> {{ formatDate(client.paymentInfo.lastPaymentDate) }}</p>
-          <p><strong>Método:</strong> {{ client.paymentInfo.preferredMethod }}</p>
-          <p><strong>Banco:</strong> {{ client.paymentInfo.bank }}</p>
+        </div>
+        <div v-if="client.businesses && client.businesses.length > 0" class="business-info">
+          <h4>Negocios:</h4>
+          <ul>
+            <li v-for="biz in client.businesses" :key="biz._id">{{ biz.name }}</li>
+          </ul>
         </div>
       </div>
+    </div>
+
+    <div v-else-if="searchStore.state.searchTerm" class="empty-state">
+      <i class="fas fa-search-minus"></i>
+      <p>No se encontraron resultados para "<strong>{{ searchStore.state.searchTerm }}</strong>".</p>
+    </div>
+
+    <div v-else class="empty-state">
+      <i class="fas fa-users-slash"></i>
+      <p>No hay clientes registrados.</p>
+    </div>
+
+    <div
+      v-if="searchStore.state.pagination && searchStore.state.pagination.totalPages > 1"
+      class="pagination"
+    >
+      <button
+        @click="searchStore.goToPage(searchStore.state.pagination.page - 1)"
+        :disabled="searchStore.state.pagination.page <= 1"
+      >
+        Anterior
+      </button>
+      <span>Página {{ searchStore.state.pagination.page }} de {{ searchStore.state.pagination.totalPages }}</span>
+      <button
+        @click="searchStore.goToPage(searchStore.state.pagination.page + 1)"
+        :disabled="searchStore.state.pagination.page >= searchStore.state.pagination.totalPages"
+      >
+        Siguiente
+      </button>
     </div>
   </div>
 </template>
@@ -87,24 +112,30 @@ const formatDate = (date: string) => format(new Date(date), 'dd MMM yyyy HH:mm')
   margin: 0 auto;
 }
 
+.header-container {
+  padding: 0 1rem;
+  margin-bottom: 2rem;
+}
+
 .section-title {
   font-size: 1.5rem;
   color: $BAKANO-DARK;
   margin-bottom: 1rem;
   font-weight: 600;
-  padding: 0 1rem;
 }
 
 .loading,
 .empty-state {
   text-align: center;
+  padding: 3rem 1rem;
   font-size: 1rem;
   color: rgba($BAKANO-DARK, 0.7);
-  margin-top: 1rem;
 
   i {
-    margin-right: 0.5rem;
-    color: $BAKANO-PINK;
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    display: block;
+    color: $BAKANO-PURPLE;
   }
 }
 
@@ -112,26 +143,22 @@ const formatDate = (date: string) => format(new Date(date), 'dd MMM yyyy HH:mm')
   display: grid;
   gap: 1.5rem;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  padding: 0 1rem;
 }
 
 .client-card {
-  position: relative; // NUEVO: Necesario para posicionar el ícono de forma absoluta
+  position: relative;
   background: $white;
   border-radius: 12px;
-  box-shadow: 0 2px 12px rgba($BAKANO-PINK, 0.06);
+  box-shadow: 0 2px 12px rgba($BAKANO-PURPLE, 0.06);
   padding: 1.5rem;
-  margin: 1rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
   transition: all 0.3s ease;
-  cursor: pointer; // NUEVO: Cambia el cursor a una mano para indicar que es clickeable
+  cursor: pointer;
 
   &:hover {
     transform: translateY(-3px);
-    box-shadow: 0 4px 16px rgba($BAKANO-PINK, 0.12);
+    box-shadow: 0 4px 16px rgba($BAKANO-PURPLE, 0.12);
 
-    // NUEVO: Efecto de hover sobre el ícono cuando pasamos el mouse por la tarjeta
     .open-link-icon {
       color: $BAKANO-PINK;
       transform: scale(1.1);
@@ -155,19 +182,62 @@ const formatDate = (date: string) => format(new Date(date), 'dd MMM yyyy HH:mm')
   }
 }
 
-// NUEVO: Estilos para el ícono de "abrir enlace"
 .open-link-icon {
   position: absolute;
   top: 1.5rem;
   right: 1.5rem;
   font-size: 1rem;
-  color: rgba($BAKANO-PURPLE, 0.5); // Un color sutil que no distrae
+  color: rgba($BAKANO-PURPLE, 0.5);
   transition: all 0.3s ease;
 }
 
-.payment-info {
+.payment-info,
+.business-info {
   margin-top: 1rem;
-  border-top: 1px solid rgba($BAKANO-DARK, 0.1);
+  border-top: 1px solid $BAKANO-LIGHT;
   padding-top: 1rem;
+}
+
+.business-info {
+  h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    color: $BAKANO-DARK;
+  }
+
+  ul {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+  }
+
+  li {
+    padding: 0.2rem 0;
+    font-size: 0.9rem;
+    color: rgba($BAKANO-DARK, 0.8);
+  }
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding: 1rem;
+
+  button {
+    padding: 0.5rem 1rem;
+    border: 1px solid $BAKANO-PURPLE;
+    background: transparent;
+    color: $BAKANO-PURPLE;
+    border-radius: 6px;
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
 }
 </style>
