@@ -454,15 +454,21 @@ watch(transactionCurrentPage, (newPage) => {
 }
 
 .meeting-item {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem 1rem;
   padding: 0.8rem 0.5rem;
   border-bottom: 1px solid $BAKANO-LIGHT;
 
   &:last-child {
     border-bottom: none;
+  }
+
+  @media (min-width: 500px) {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    flex-wrap: nowrap;
   }
 }
 
@@ -484,15 +490,20 @@ watch(transactionCurrentPage, (newPage) => {
   flex-direction: column;
   gap: 0.1rem;
   overflow: hidden;
+  flex-grow: 1;
 }
 
-// .meeting-type-text {
-//   /* Estilos específicos para este texto si es necesario */
-// }
+.meeting-type-text {
+  white-space: normal;
+  word-break: break-word;
+  font-weight: 500;
+  color: $BAKANO-DARK;
+}
 
-// .meeting-time {
-//   /* Estilos específicos para la hora si es necesario */
-// }
+.meeting-time {
+  font-size: 0.85rem;
+  color: rgba($BAKANO-DARK, 0.7);
+}
 
 .status-badge {
   font-family: $font-principal;
@@ -503,6 +514,32 @@ watch(transactionCurrentPage, (newPage) => {
   font-size: 0.7rem;
   letter-spacing: 0.5px;
   white-space: nowrap;
+  margin-left: auto;
+
+  @media (min-width: 500px) {
+    margin-left: 0;
+  }
+
+  &.status-scheduled {
+    background-color: lighten($BAKANO-PURPLE, 35%);
+    color: darken($BAKANO-PURPLE, 10%);
+  }
+
+  &.status-completed {
+    background-color: lighten($BAKANO-GREEN, 35%);
+    color: darken($BAKANO-GREEN, 10%);
+  }
+
+  &.status-cancelled,
+  &.status-no-show {
+    background-color: lighten($BAKANO-PINK, 35%);
+    color: darken($BAKANO-PINK, 10%);
+  }
+
+  &.status-pending-schedule {
+    background-color: lighten(orange, 35%);
+    color: darken(orange, 10%);
+  }
 }
 
 .empty-state {

@@ -1,94 +1,96 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { differenceInMinutes, format, formatDistanceToNow, parseISO } from 'date-fns';
-import useClientAndBusinessStore from '@/stores/clientAndBusiness';
-import { useConfirmationDialog } from '@/composables/useConfirmationDialog';
-import type { Meeting } from '@/types/meeting.interface';
-import { es } from 'date-fns/locale';
+import { onMounted, ref } from 'vue'
+import { differenceInMinutes, format, formatDistanceToNow, parseISO } from 'date-fns'
+import { es } from 'date-fns/locale'
+import useClientAndBusinessStore from '@/stores/clientAndBusiness'
+import { useConfirmationDialog } from '@/composables/useConfirmationDialog'
+import { useToast } from '@/composables/useToast'
+import type { Meeting } from '@/types/meeting.interface'
 
+const store = useClientAndBusinessStore()
+const { reveal, selectedValue } = useConfirmationDialog()
+const { triggerToast } = useToast()
 
-const { reveal, selectedValue } = useConfirmationDialog();
+const meetingBeingAssigned = ref<string | null>(null)
+const expandedMeetingId = ref<string | null>(null)
 
-const store = useClientAndBusinessStore();
-const meetingBeingAssigned = ref<string | null>(null);
-const expandedMeetingId = ref<string | null>(null);
 
 const toggleDetails = (meetingId: string) => {
-  if (expandedMeetingId.value === meetingId) {
-    expandedMeetingId.value = null;
-  } else {
-    expandedMeetingId.value = meetingId;
-  }
-};
+  expandedMeetingId.value = expandedMeetingId.value === meetingId ? null : meetingId
+}
 
 const handleAssign = async (meetingId: string, businessId: string | null = null) => {
-  meetingBeingAssigned.value = meetingId;
-  const success = await store.assignMeeting(meetingId, businessId);
-  if (!success) {
-    console.error('Error al asignar la reunión');
+  meetingBeingAssigned.value = meetingId
+  try {
+    const success = await store.assignMeeting(meetingId, businessId)
+    if (success) {
+      triggerToast('Reunión asignada exitosamente.', 'success')
+    } else {
+      triggerToast(store.error?.message || 'No se pudo asignar la reunión.', 'error')
+    }
+  } catch (error) {
+    triggerToast('Ocurrió un error inesperado al asignar.', 'error')
+    console.error('Error en handleAssign:', error)
+  } finally {
+    meetingBeingAssigned.value = null
   }
-  meetingBeingAssigned.value = null;
-};
+}
 
 const requestAssignConfirmation = async (meeting: Meeting) => {
-  if (!store.client) return;
+  if (!store.client) return
 
-  const clientBusinesses = store.businesses || [];
-  let businessIdToAssign: string | null = null;
+  const clientBusinesses = store.businesses || []
+  let businessIdToAssign: string | null = null
   const dialogOptions: Parameters<typeof reveal>[0] = {
     title: 'Confirmar Asignación',
     message: `Estás a punto de asignar la reunión de tipo <strong>${meeting.meetingType}</strong> al cliente <strong>${store.client.name}</strong>.`,
-  };
+  }
 
   if (clientBusinesses.length === 1) {
-    businessIdToAssign = clientBusinesses[0]._id;
-    dialogOptions.message += `<br>Se asignará automáticamente al negocio: <strong>${clientBusinesses[0].name}</strong>.`;
-  } else if (clientBusinesses.length > 1) {
+    businessIdToAssign = clientBusinesses[0]._id
+    dialogOptions.message += `<br><br>Se vinculará automáticamente al negocio: <strong>${clientBusinesses[0].name}</strong>.`
+  }
+
+  else if (clientBusinesses.length > 1) {
     dialogOptions.selectionConfig = {
-      label: 'Selecciona un negocio para la reunión:',
+      label: 'Este cliente tiene varios negocios. Por favor, selecciona a cuál corresponde esta reunión:',
       items: clientBusinesses,
       displayField: 'name',
       valueField: '_id',
-    };
+    }
   }
-
-  // AÑADIDO: El console.log para depurar
-  console.log("Mensaje enviado al diálogo:", dialogOptions.message);
 
   try {
-    const confirmed = await reveal(dialogOptions);
+    const confirmed = await reveal(dialogOptions)
 
     if (confirmed) {
-      const finalBusinessId = selectedValue.value || businessIdToAssign;
-      await handleAssign(meeting._id, finalBusinessId);
+      const finalBusinessId = selectedValue.value || businessIdToAssign
+      await handleAssign(meeting._id, finalBusinessId)
     }
   } catch (error) {
-    console.log('Asignación cancelada por el usuario.');
+    triggerToast('La asignación ha sido cancelada.', 'info')
   }
-};
-
-const formatDate = (date?: string | Date) =>
-  date ? format(new Date(date), 'dd MMMM, yyyy HH:mm', { locale: es }) : 'N/A';
-
-const formatRelativeTime = (date?: string | Date) => {
-  if (!date) return 'N/A';
-  return date ? formatDistanceToNow(new Date(date), { addSuffix: true, locale: es }) : 'N/A';
 }
 
+const formatDate = (date?: string | Date) =>
+  date ? format(new Date(date), 'dd MMMM, yyyy HH:mm', { locale: es }) : 'N/A'
+
+const formatRelativeTime = (date?: string | Date) =>
+  date ? formatDistanceToNow(new Date(date), { addSuffix: true, locale: es }) : 'N/A'
 
 const calculateDuration = (start?: string, end?: string) => {
-  if (!start || !end) return 'N/A';
-  const duration = differenceInMinutes(parseISO(end), parseISO(start));
-  if (duration < 60) return `${duration} min`;
-  const hours = Math.floor(duration / 60);
-  const minutes = duration % 60;
-  return `${hours}h ${minutes > 0 ? `${minutes}min` : ''}`;
-};
+  if (!start || !end) return 'N/A'
+  const duration = differenceInMinutes(parseISO(end), parseISO(start))
+  if (duration < 60) return `${duration} min`
+  const hours = Math.floor(duration / 60)
+  const minutes = duration % 60
+  return `${hours}h ${minutes > 0 ? `${minutes}min` : ''}`
+}
 
+// --- CICLO DE VIDA ---
 onMounted(() => {
-  store.fetchUnassignedMeetings();
-});
-
+  store.fetchUnassignedMeetings()
+})
 </script>
 
 <template>
@@ -97,9 +99,17 @@ onMounted(() => {
       <i class="fas fa-link header-icon"></i>
       <h3>Asignar Reunión Existente</h3>
     </div>
-    <div v-if="store.unassignedMeetings.length > 0">
+
+    <div v-if="store.isAssigningMeeting && store.unassignedMeetings.length === 0" class="loading-state">
+      <i class="fas fa-spinner fa-spin"></i>
+      <span>Cargando reuniones...</span>
+    </div>
+    
+    <div v-else-if="store.unassignedMeetings.length > 0">
       <ul class="assign-meeting-list">
-        <li v-for="meeting in store.unassignedMeetings" :key="meeting._id"
+        <li
+          v-for="meeting in store.unassignedMeetings"
+          :key="meeting._id"
           class="assign-meeting-item"
           :class="{ 'is-expanded': expandedMeetingId === meeting._id }"
         >
@@ -109,7 +119,11 @@ onMounted(() => {
               <span class="meeting-time">{{ formatDate(meeting.scheduledTime) }}</span>
             </div>
             <div class="meeting-actions">
-              <button @click.stop="requestAssignConfirmation(meeting)" class="btn-assign" :disabled="!!meetingBeingAssigned">
+              <button
+                @click.stop="requestAssignConfirmation(meeting)"
+                class="btn-assign"
+                :disabled="!!meetingBeingAssigned"
+              >
                 <i v-if="meetingBeingAssigned === meeting._id" class="fas fa-spinner fa-spin"></i>
                 <span v-else>Asignar</span>
               </button>
@@ -119,7 +133,7 @@ onMounted(() => {
           <Transition name="slide-fade">
             <div v-if="expandedMeetingId === meeting._id" class="details-panel">
               <div class="detail-item">
-                <span class="detail-label">Agente Asignado:</span>
+                <span class="detail-label">Agente:</span>
                 <span class="detail-value">{{ meeting.assignedTo }}</span>
               </div>
               <div class="detail-item">
@@ -134,19 +148,15 @@ onMounted(() => {
                 <span class="detail-label">Creada:</span>
                 <span class="detail-value">{{ formatRelativeTime(meeting.createdAt) }}</span>
               </div>
-              <div class="detail-item">
-                <span class="detail-label">Asistente externo:</span>
-                <span class="detail-value">{{ meeting.attendeeEmail }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Celular de asistente externo:</span>
-                <span class="detail-value">{{ meeting.attendeePhone }}</span>
+              <div class="detail-item full-width">
+                <span class="detail-label">Asistente:</span>
+                <span class="detail-value">{{ meeting.attendeeEmail || 'No registrado' }}</span>
               </div>
             </div>
           </Transition>
         </li>
       </ul>
-      </div>
+    </div>
     <div v-else class="empty-state">
       <p>No hay reuniones pendientes por asignar.</p>
     </div>
@@ -158,6 +168,21 @@ onMounted(() => {
 
 .card-header .header-icon {
   color: $BAKANO-GREEN;
+}
+
+.loading-state,
+.empty-state {
+  font-family: $font-secondary;
+  text-align: center;
+  color: rgba($BAKANO-DARK, 0.6);
+  padding: 1.5rem 1rem;
+  font-style: italic;
+  background-color: lighten($BAKANO-LIGHT, 3%);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .assign-meeting-list {
@@ -172,7 +197,7 @@ onMounted(() => {
 .assign-meeting-item {
   border-bottom: 1px solid $BAKANO-LIGHT;
   transition: background-color 0.2s ease;
-  border-radius: 12px;
+  border-radius: 8px;
 
   &:last-child {
     border-bottom: none;
@@ -180,7 +205,7 @@ onMounted(() => {
 
   &.is-expanded {
     background-color: lighten($BAKANO-LIGHT, 3%);
-    padding: 16px;
+    padding: 0 0.5rem 0.5rem 0.5rem;
   }
 }
 
@@ -231,7 +256,6 @@ onMounted(() => {
   transition: all 0.2s ease;
   min-width: 90px;
   text-align: center;
-  z-index: 2;
 
   &:hover:not(:disabled) {
     background-color: $BAKANO-PURPLE;
@@ -254,12 +278,19 @@ onMounted(() => {
 }
 
 .details-panel {
-  padding: 1rem 12px;
+  padding: 1rem 0.5rem 0.5rem 0.5rem;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 0.75rem;
   border-top: 1px dashed $BAKANO-LIGHT;
-  grid-template-columns: 1fr;
+
+  @media (min-width: 480px) {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .full-width {
+    grid-column: 1 / -1;
+  }
 }
 
 .detail-item {
@@ -294,21 +325,5 @@ onMounted(() => {
 .slide-fade-leave-to {
   transform: translateY(-10px);
   opacity: 0;
-}
-
-.empty-state {
-  font-family: $font-secondary;
-  text-align: center;
-  color: rgba($BAKANO-DARK, 0.6);
-  padding: 1.5rem 1rem;
-  font-style: italic;
-  background-color: lighten($BAKANO-LIGHT, 3%);
-  border-radius: 8px;
-}
-
-@media (min-width: 376px) {
-  .details-panel {
-    grid-template-columns: 1fr 1fr;
-  }
 }
 </style>
