@@ -68,6 +68,16 @@ class ClientsService extends APIBase {
     return response.data as ConfirmationResponse
   }
 
+  public async completeDataStrategyMeeting(
+    clientId: string,
+    dataStrategyMeetingId: string,
+  ): Promise<ConfirmationResponse> {
+    const response = await this.post(`client/${clientId}/complete-data-strategy-meeting`, {
+      strategyMeetingId: dataStrategyMeetingId,
+    })
+    return response.data as ConfirmationResponse
+  }
+
   public async getClientMeetingStatus(
     clientId: string,
   ): Promise<AxiosResponse<IMeetingStatusResponse>> {
