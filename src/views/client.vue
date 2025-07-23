@@ -21,6 +21,7 @@ const transactionCurrentPage = ref(1)
 const isActionLoading = ref(false)
 
 
+// --- LÓGICA DE ACCIONES PENDIENTES ---
 const portfolioAccessMeeting = computed(() => {
   if (
     store.meetingStatus?.meeting?.meetingType === MeetingType.PORTFOLIO_ACCESS &&
@@ -70,6 +71,7 @@ const pendingActions = computed(() => {
 })
 
 
+// --- HANDLERS DE ACCIONES ---
 async function requestPortfolioConfirmation() {
   if (!portfolioAccessMeeting.value || !store.client) return
 
@@ -81,7 +83,8 @@ async function requestPortfolioConfirmation() {
 
     if (confirmed) {
       isActionLoading.value = true
-      await store.confirmPortfolioAccess(portfolioAccessMeeting.value._id)
+      // ✅ LA CORRECCIÓN ESTÁ AQUÍ: Usamos .id porque es lo que devuelve el endpoint getClientMeetingStatus
+      await store.confirmPortfolioAccess(portfolioAccessMeeting.value.id)
       triggerToast('Acceso confirmado y siguiente paso habilitado.', 'success')
     }
   } catch {
@@ -102,8 +105,8 @@ async function requestDataStrategyCompletion() {
 
     if (confirmed) {
       isActionLoading.value = true
-      // ✅ CORRECCIÓN: Usamos ._id
-      await store.completeDataStrategyMeeting(dataStrategyMeeting.value._id)
+      // ✅ CORRECCIÓN: Usamos .id también aquí por consistencia.
+      await store.completeDataStrategyMeeting(dataStrategyMeeting.value.id)
       triggerToast('Reunión de estrategia completada.', 'success')
     }
   } catch {
@@ -113,6 +116,7 @@ async function requestDataStrategyCompletion() {
   }
 }
 
+// Handler para eliminar una reunión del historial
 async function handleDeleteMeeting(meeting: { _id: string; meetingType: string; scheduledTime?: string | Date }) {
   if (!meeting || !meeting._id) {
     triggerToast('Error: No se pudo identificar la reunión a eliminar.', 'error');
@@ -554,12 +558,11 @@ watch(transactionCurrentPage, (newPage) => {
   flex-direction: column;
 }
 
-// --- ✅ REFACTORIZACIÓN A FLEXBOX ---
 .meeting-item {
-  display: flex; // Usamos flexbox para un alineamiento robusto.
-  flex-wrap: wrap; // Permitimos que los elementos pasen a la siguiente línea en móvil.
-  align-items: center; // Alineamos verticalmente todos los elementos.
-  gap: 0.75rem; // Espacio consistente entre todos los elementos.
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
   padding: 0.8rem 0.5rem;
   border-bottom: 1px solid $BAKANO-LIGHT;
 
@@ -569,7 +572,6 @@ watch(transactionCurrentPage, (newPage) => {
 }
 
 .meeting-icon {
-  // Ya no necesita `grid-area`.
   background-color: $overlay-purple;
   color: $BAKANO-PURPLE;
   width: 40px;
@@ -578,14 +580,13 @@ watch(transactionCurrentPage, (newPage) => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0; // Evita que el icono se encoja.
+  flex-shrink: 0;
   font-size: 1rem;
 }
 
 .meeting-details {
-  // Ya no necesita `grid-area`.
-  flex-grow: 1; // Le decimos que ocupe todo el espacio sobrante.
-  flex-basis: 200px; // Un tamaño base para ayudar al wrapping en móvil.
+  flex-grow: 1;
+  flex-basis: 200px;
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
@@ -605,8 +606,7 @@ watch(transactionCurrentPage, (newPage) => {
 }
 
 .status-badge {
-  // ✅ EMPUJAMOS EL RESTO DE ELEMENTOS A LA DERECHA
-  margin-left: auto; // Este es el truco clave en Flexbox.
+  margin-left: auto;
   font-family: $font-principal;
   font-weight: 600;
   text-transform: uppercase;
@@ -616,16 +616,13 @@ watch(transactionCurrentPage, (newPage) => {
   letter-spacing: 0.5px;
   white-space: nowrap;
 
-  // En móvil, reseteamos el margen para que se alinee con el botón de borrar.
   @media (max-width: 550px) {
     margin-left: 0;
-    // Hacemos que ocupe todo el ancho de la "columna" de acciones.
     flex-basis: 100%;
     text-align: right;
-    order: 2; // Lo ponemos después de los detalles
+    order: 2;
   }
 
-  // Clases de estado (sin cambios)
   &.status-scheduled {
     background-color: lighten($BAKANO-PURPLE, 35%);
     color: darken($BAKANO-PURPLE, 10%);
@@ -649,8 +646,6 @@ watch(transactionCurrentPage, (newPage) => {
 }
 
 .delete-meeting-btn {
-  // El botón se sienta naturalmente al lado del status badge.
-  // Ya no necesita `grid-area`.
   background: none;
   border: none;
   color: #a0aec0;
@@ -663,7 +658,7 @@ watch(transactionCurrentPage, (newPage) => {
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease-in-out;
-  flex-shrink: 0; // Evita que el botón se encoja.
+  flex-shrink: 0;
 
   &:hover:not(:disabled) {
     background-color: lighten($BAKANO-PINK, 40%);
@@ -680,10 +675,8 @@ watch(transactionCurrentPage, (newPage) => {
   }
 
   @media (max-width: 550px) {
-    // En móvil, quitamos el margen auto del status y se lo ponemos al botón
-    // para que la alineación a la derecha sea consistente.
     margin-left: auto;
-    order: 1; // Lo ponemos antes que el status badge en el DOM visual
+    order: 1;
   }
 }
 
