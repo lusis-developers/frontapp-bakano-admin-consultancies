@@ -137,6 +137,10 @@ class ClientsService extends APIBase {
     const response = await this.get<UnifiedSearchResponse>(`search?${params.toString()}`)
     return response.data
   }
+
+  public async deleteMeeting(meetingId: string): Promise<void> {
+    await this.delete(`meeting/${meetingId}`)
+  }
 }
 
 export default ClientsService.getInstance()
