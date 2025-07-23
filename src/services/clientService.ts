@@ -62,9 +62,11 @@ class ClientsService extends APIBase {
     clientId: string,
     portfolioMeetingId: string,
   ): Promise<ConfirmationResponse> {
-    const response = await this.post(`client/${clientId}/confirm-strategy-meeting`, {
+    const payload = {
       portfolioMeetingId: portfolioMeetingId,
-    })
+    }
+
+    const response = await this.post(`client/${clientId}/confirm-strategy-meeting`, payload)
     return response.data as ConfirmationResponse
   }
 
