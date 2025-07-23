@@ -121,6 +121,31 @@ const useClientAndBusinessStore = defineStore('ClientAndBusinessStore', {
       }
     },
 
+    async completeDataStrategyMeeting(meetingId: string): Promise<boolean> {
+      if (!this.client) {
+        this.error = new AxiosError('No hay un cliente cargado.')
+        return false
+      }
+
+      this.isLoading = true
+      this.error = null
+      try {
+        await clientsService.completeDataStrategyMeeting(this.client._id, meetingId)
+
+        await Promise.all([
+          this.fetchMeetingStatus(this.client._id),
+          this.fetchMeetingsHistory(this.client._id),
+        ])
+        return true
+      } catch (error) {
+        console.error('Error al completar la reunión de estrategia:', error)
+        this.error = error as any
+        return false
+      } finally {
+        this.isLoading = false
+      }
+    },
+
     async fetchMeetingStatus(clientId: string): Promise<void> {
       this.isLoading = true
       this.error = null
