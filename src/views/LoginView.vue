@@ -14,7 +14,7 @@ const handleLogin = async () => {
     return
   }
 
-  const allowedEmails = ['lreyes@bakano.ec', 'dreyes@bakano.ec', 'dquimi@bakano.ec']
+  const allowedEmails = ['lreyes@bakano.ec', 'dreyes@bakano.ec', 'dquimi@bakano.ec', 'cjouvin@bakano.ec']
   const allowedPassword = 'Bakano1234!'
 
   if (!allowedEmails.includes(email.value.trim()) || password.value !== allowedPassword) {
