@@ -6,6 +6,7 @@ import useClientAndBusinessStore from '@/stores/clientAndBusiness'
 import { MeetingStatus, MeetingType } from '@/enums/meetingStatus.enum'
 import TransactionList from './client/TransactionList.vue'
 import AssignMeeting from './client/AssignMeeting.vue'
+import MVPAccountsSection from './client/MVPAccountsSection.vue'
 import { useConfirmationDialog } from '@/composables/useConfirmationDialog'
 import { useToast } from '@/composables/useToast'
 
@@ -315,6 +316,7 @@ watch(transactionCurrentPage, (newPage) => {
           <p v-else class="empty-state">No hay reuniones registradas.</p>
         </section>
 
+        <MVPAccountsSection :client-id="clientId" />
         <AssignMeeting />
         <TransactionList
           :transactions="store.transactions"
