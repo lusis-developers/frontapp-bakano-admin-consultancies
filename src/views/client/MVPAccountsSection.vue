@@ -92,12 +92,14 @@ function formatDate(date: string | Date | undefined) {
 <template>
   <section class="card mvp-accounts-section">
     <div class="card-header">
-      <i class="fas fa-crown header-icon"></i>
-      <h3>Cuentas MVP</h3>
+      <div class="header-title">
+        <i class="fas fa-crown header-icon"></i>
+        <h3>Cuentas MVP</h3>
+      </div>
       <button 
         v-if="mvpAccounts && mvpAccounts.length > 0" 
         @click="showCreateModal = true" 
-        class="btn-subtle btn-add"
+        class="btn-create btn-add"
       >
         <i class="fas fa-plus-circle"></i> Crear Nueva
       </button>
@@ -129,27 +131,48 @@ function formatDate(date: string | Date | undefined) {
     <!-- Lista de cuentas MVP -->
     <div v-else class="mvp-accounts-list">
       <div v-for="account in mvpAccounts" :key="account._id" class="mvp-account-card">
-        <div class="account-header">
-          <h4>{{ account.accountInfo?.firstName }} {{ account.accountInfo?.lastName }}</h4>
-          <span class="account-type">{{ account.mvpType }}</span>
-        </div>
-        
-        <div class="account-details">
-          <p><strong>Email:</strong> {{ account.accountInfo?.email }}</p>
-          <p><strong>Creada:</strong> {{ formatDate(account.createdAt) }}</p>
-          <p><strong>Estado:</strong> <span :class="['status-badge', account.active ? 'active' : 'inactive']">{{ account.active ? 'Activa' : 'Inactiva' }}</span></p>
-        </div>
-        
-        <div class="account-actions">
-          <button 
-            @click="handleDeleteAccount(account)" 
-            class="btn-delete btn-icon" 
-            :disabled="isDeleting"
-            title="Eliminar cuenta"
-          >
-            <i v-if="isDeleting" class="fas fa-spinner fa-spin"></i>
-            <i v-else class="fas fa-trash"></i>
-          </button>
+        <div class="card-inner">
+          <!-- Encabezado con nombre y tipo -->
+          <div class="account-header">
+            <h4 class="account-name" :title="account.accountInfo?.firstName + ' ' + account.accountInfo?.lastName">
+              {{ account.accountInfo?.firstName }} {{ account.accountInfo?.lastName }}
+            </h4>
+            <div class="badge-container">
+              <span class="account-type" :title="account.mvpType">{{ account.mvpType }}</span>
+            </div>
+          </div>
+          
+          <!-- Detalles de la cuenta -->
+          <div class="account-details">
+            <div class="detail-row">
+              <span class="detail-label">Email:</span>
+              <span class="detail-value" :title="account.accountInfo?.email">{{ account.accountInfo?.email }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Creada:</span>
+              <span class="detail-value">{{ formatDate(account.createdAt) }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Estado:</span>
+              <span :class="['status-badge', account.active ? 'active' : 'inactive']">
+                {{ account.active ? 'Activa' : 'Inactiva' }}
+              </span>
+            </div>
+          </div>
+          
+          <!-- Botón de eliminar -->
+          <div class="account-actions">
+            <button 
+              @click="handleDeleteAccount(account)" 
+              class="btn-delete btn-icon" 
+              :disabled="isDeleting"
+              title="Eliminar cuenta"
+              aria-label="Eliminar cuenta"
+            >
+              <i v-if="isDeleting" class="fas fa-spinner fa-spin"></i>
+              <i v-else class="fas fa-trash"></i>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -169,6 +192,46 @@ function formatDate(date: string | Date | undefined) {
 
 .mvp-accounts-section {
   margin-bottom: 1.5rem;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba($BAKANO-LIGHT, 0.7);
+  flex-wrap: wrap;
+  gap: 0.75rem;
+
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    .header-icon {
+      color: $BAKANO-PURPLE;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: $BAKANO-DARK;
+      white-space: nowrap;
+    }
+  }
+
+  @media (max-width: 480px) {
+    padding: 0.75rem 1rem;
+
+    .header-title h3 {
+      font-size: 1.1rem;
+    }
+  }
 }
 
 .loading-state,
@@ -209,7 +272,7 @@ function formatDate(date: string | Date | undefined) {
   align-items: center;
   gap: 0.5rem;
   font-size: 0.9rem;
-  
+
   i {
     font-size: 1rem;
   }
@@ -230,18 +293,38 @@ function formatDate(date: string | Date | undefined) {
   }
 }
 
+.btn-create {
+  background-color: $BAKANO-PURPLE;
+  color: $white;
+  border: none;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba($BAKANO-PURPLE, 0.2);
+
+  &:hover {
+    background-color: darken($BAKANO-PURPLE, 5%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba($BAKANO-PURPLE, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba($BAKANO-PURPLE, 0.2);
+  }
+}
+
 .btn-add {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   font-size: 0.9rem;
-  
+  min-width: 120px;
+
   i {
     font-size: 1.1rem;
-  }
-  
-  &:hover {
-    transform: translateY(-1px);
   }
 }
 
@@ -265,22 +348,38 @@ function formatDate(date: string | Date | undefined) {
 
 .mvp-accounts-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1rem;
   padding: 0.5rem;
+  width: 100%;
+  overflow-x: hidden;
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .mvp-account-card {
   background: $white;
   border: 1px solid $BAKANO-LIGHT;
   border-radius: 12px;
-  padding: 1.25rem;
   position: relative;
   transition: all 0.2s ease;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
 
   &:hover {
     box-shadow: 0 5px 15px rgba($BAKANO-PURPLE, 0.1);
-    transform: translateY(-3px);
+    transform: translateY(-2px);
+  }
+
+  .card-inner {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    position: relative;
   }
 
   .account-header {
@@ -288,32 +387,73 @@ function formatDate(date: string | Date | undefined) {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
+    width: 100%;
+    position: relative;
+    padding-right: 2rem;
+    /* Espacio para el botón de eliminar */
 
-    h4 {
+    .account-name {
       margin: 0;
       font-size: 1.1rem;
       font-weight: 600;
       color: $BAKANO-DARK;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      line-clamp: 1;
+      -webkit-box-orient: vertical;
+      max-width: calc(100% - 90px);
+    }
+
+    .badge-container {
+      flex-shrink: 0;
+      margin-left: 0.5rem;
     }
 
     .account-type {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       background: $overlay-purple;
       color: $BAKANO-PURPLE;
       padding: 0.2rem 0.5rem;
       border-radius: 4px;
       font-weight: 500;
+      white-space: nowrap;
+      display: inline-block;
     }
   }
 
   .account-details {
-    p {
-      margin: 0.5rem 0;
-      font-size: 0.95rem;
+    margin-bottom: 1rem;
 
-      strong {
-        color: rgba($BAKANO-DARK, 0.7);
+    .detail-row {
+      display: flex;
+      margin-bottom: 0.5rem;
+      align-items: baseline;
+      flex-wrap: wrap;
+
+      &:last-child {
+        margin-bottom: 0;
       }
+    }
+
+    .detail-label {
+      color: rgba($BAKANO-DARK, 0.7);
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-right: 0.5rem;
+      flex-shrink: 0;
+      min-width: 60px;
+    }
+
+    .detail-value {
+      font-size: 0.9rem;
+      color: $BAKANO-DARK;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      word-break: break-word;
+      flex: 1;
+      min-width: 0;
     }
 
     .status-badge {
@@ -321,6 +461,7 @@ function formatDate(date: string | Date | undefined) {
       font-weight: 600;
       padding: 0.2rem 0.5rem;
       border-radius: 4px;
+      display: inline-block;
 
       &.active {
         background: lighten($BAKANO-GREEN, 40%);
@@ -336,8 +477,9 @@ function formatDate(date: string | Date | undefined) {
 
   .account-actions {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
+    top: 1.25rem;
+    right: 1.25rem;
+    z-index: 5;
 
     .btn-delete {
       background: none;
@@ -350,8 +492,8 @@ function formatDate(date: string | Date | undefined) {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 36px;
-      height: 36px;
+      width: 32px;
+      height: 32px;
 
       &:hover:not(:disabled) {
         background: lighten($BAKANO-PINK, 40%);
@@ -363,16 +505,16 @@ function formatDate(date: string | Date | undefined) {
         cursor: not-allowed;
       }
     }
-    
-    .btn-icon {
-      font-size: 1rem;
-      
-      i {
-        display: inline-block;
-        width: 1em;
-        height: 1em;
-        line-height: 1;
-      }
+  }
+
+  .btn-icon {
+    font-size: 1rem;
+
+    i {
+      display: inline-block;
+      width: 1em;
+      height: 1em;
+      line-height: 1;
     }
   }
 }
