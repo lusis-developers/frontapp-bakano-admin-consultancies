@@ -56,7 +56,7 @@ async function handleDeleteAccount(account: IMvpAccount) {
     }
   } catch (err) {
     console.error('Error al eliminar cuenta MVP:', err)
-    triggerToast('Error al eliminar la cuenta MVP', 'error')
+    triggerToast('Se canceló la eliminación de cuenta', 'warning')
   } finally {
     isDeleting.value = false
   }
