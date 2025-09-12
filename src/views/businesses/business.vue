@@ -7,6 +7,7 @@ import ManagersCard from './components/ManagersCard.vue'
 import EditBusinessModal from './components/EditBusinessModal.vue'
 import type { Business } from '@/types/business.interface'
 import DangerZone from '@/views/businesses/components/DangerZone.vue'
+import ChecklistProgress from '@/components/shared/ChecklistProgress.vue'
 import { useConfirmationDialog } from '@/composables/useConfirmationDialog'
 import { useToast } from '@/composables/useToast'
 
@@ -112,7 +113,7 @@ onMounted(async () => {
     <div v-else-if="store.selectedBusiness" class="details-grid">
       <div class="card info-card">
         <h2>{{ store.selectedBusiness.name }}</h2>
-        <p><strong>RUC/ID:</strong> <span class="copyable-text" @click="copyToClipboard(store.selectedBusiness.ruc, 'ruc')">{{ store.selectedBusiness.ruc }}<i class="fas fa-copy copy-icon"></i></span><span v-if="copiedField === 'ruc'" class="copy-feedback">✓</span></p>
+        <p><strong>RUC/ID:</strong> <span class="copyable-text" @click="copyToClipboard(store.selectedBusiness.ruc!, 'ruc')">{{ store.selectedBusiness.ruc }}<i class="fas fa-copy copy-icon"></i></span><span v-if="copiedField === 'ruc'" class="copy-feedback">✓</span></p>
         <p><strong>Teléfono:</strong> <span class="copyable-text" @click="copyToClipboard(store.selectedBusiness.phone!, 'phone')">{{ store.selectedBusiness.phone }}<i class="fas fa-copy copy-icon"></i></span><span v-if="copiedField === 'phone'" class="copy-feedback">✓</span></p>
         <p><strong>Email:</strong> <span class="copyable-text" @click="copyToClipboard(store.selectedBusiness.email!, 'email')">{{ store.selectedBusiness.email }}<i class="fas fa-copy copy-icon"></i></span><span v-if="copiedField === 'email'" class="copy-feedback">✓</span></p>
         <p><strong>Dirección:</strong> <span class="copyable-text" @click="copyToClipboard(store.selectedBusiness.address!, 'address')">{{ store.selectedBusiness.address }}<i class="fas fa-copy copy-icon"></i></span><span v-if="copiedField === 'address'" class="copy-feedback">✓</span></p>
@@ -138,6 +139,12 @@ onMounted(async () => {
             No hay archivos adjuntos.
           </li>
         </ul>
+      </div>
+      <div class="card-wrapper full-width">
+        <ChecklistProgress 
+          :business-id="businessId"
+          :manager-id="store.selectedBusiness.owner"
+        />
       </div>
       <div class="card-wrapper full-width">
         <ManagersCard
