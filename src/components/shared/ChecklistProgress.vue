@@ -47,6 +47,15 @@ const canMoveToNextPhase = computed(() => {
   return checklistStore.currentPhase.items.every(item => item.completed)
 })
 
+const showCompletionWarning = computed(() => {
+  return canMoveToNextPhase.value && checklistStore.currentPhase
+})
+
+const isLastPhase = computed(() => {
+  if (!checklistStore.checklist) return false
+  return checklistStore.checklist.currentPhase === checklistStore.checklist.phases.length - 1
+})
+
 const handleToggleItem = async (phaseId: string, item: IChecklistItem) => {
   const itemKey = `${phaseId}-${item.id}`
   loadingItems.value.add(itemKey)
@@ -74,14 +83,22 @@ const handleMoveToNextPhase = async () => {
   if (!checklistStore.currentPhase) return
   
   try {
+    const isFinalizingChecklist = isLastPhase.value
+    
     const confirmed = await reveal({
-      title: 'Avanzar a la siguiente fase',
-      message: `¿Estás seguro de que quieres avanzar de "${checklistStore.currentPhase.name}" a la siguiente fase? Esta acción no se puede deshacer.`,
+      title: isFinalizingChecklist ? '⚠️ Finalizar Checklist Completo' : '⚠️ Confirmar Avance de Fase',
+      message: isFinalizingChecklist 
+        ? `Estás a punto de finalizar completamente el checklist "${checklistStore.currentPhase.name}". <br><br><strong>ADVERTENCIA:</strong> Esta acción marcará todo el proceso como completado definitivamente y no se puede deshacer.`
+        : `Estás a punto de avanzar de "${checklistStore.currentPhase.name}" a la siguiente fase. <br><br><strong>ADVERTENCIA:</strong> Esta acción no se puede deshacer y marcará todos los pasos como completados definitivamente.`,
+      confirmationText: 'confirmar'
     })
     
     if (confirmed) {
       await checklistStore.moveToNextPhase(props.businessId)
-      triggerToast('Fase avanzada exitosamente', 'success')
+      triggerToast(
+        isFinalizingChecklist ? 'Checklist finalizado exitosamente' : 'Fase avanzada exitosamente', 
+        'success'
+      )
     }
   } catch (error: any) {
     if (error.message) {
@@ -89,6 +106,8 @@ const handleMoveToNextPhase = async () => {
     }
   }
 }
+
+// El checklist se completa automáticamente cuando todas las fases están completadas
 
 const getPhaseStatusClass = (phase: IChecklistPhase, index: number) => {
   if (!checklistStore.checklist) return 'pending'
@@ -243,14 +262,28 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div v-if="canMoveToNextPhase && !checklistStore.isChecklistComplete && (selectedPhaseIndex === null || selectedPhaseIndex === checklistStore.checklist!.currentPhase)" class="phase-actions">
+        <!-- Warning cuando todos los items están completados -->
+        <div v-if="showCompletionWarning && (selectedPhaseIndex === null || selectedPhaseIndex === checklistStore.checklist!.currentPhase)" class="completion-warning">
+          <div class="warning-content">
+            <i class="fas fa-exclamation-triangle warning-icon"></i>
+            <div class="warning-text">
+              <h4>⚠️ Todos los pasos completados</h4>
+              <p>Has completado todos los elementos de esta fase. Para continuar al siguiente paso, confirma tu decisión.</p>
+              <p class="warning-note">
+                <strong>Importante:</strong> Esta acción no se puede deshacer.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="canMoveToNextPhase && (selectedPhaseIndex === null || selectedPhaseIndex === checklistStore.checklist!.currentPhase)" class="phase-actions">
           <button 
             @click="handleMoveToNextPhase"
             class="btn-next-phase"
             :disabled="checklistStore.isLoading"
           >
             <i class="fas fa-arrow-right"></i>
-            Avanzar a la siguiente fase
+            {{ isLastPhase ? 'Finalizar checklist' : 'Confirmar siguiente paso' }}
           </button>
         </div>
 
@@ -657,6 +690,58 @@ onMounted(async () => {
   i {
     margin-right: 0.5rem;
     font-size: 1.2rem;
+  }
+}
+
+.completion-warning {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: lighten($BAKANO-PINK, 40%);
+  border: 1px solid lighten($BAKANO-PINK, 20%);
+  border-radius: 8px;
+  
+  .warning-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .warning-icon {
+    color: $BAKANO-PINK;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+    margin-top: 0.25rem;
+  }
+  
+  .warning-text {
+    flex: 1;
+    
+    h4 {
+      margin: 0 0 0.5rem 0;
+      color: darken($BAKANO-PINK, 10%);
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    
+    p {
+      margin: 0 0 0.5rem 0;
+      color: darken($BAKANO-PINK, 15%);
+      font-size: 0.9rem;
+      line-height: 1.4;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+    
+    .warning-note {
+      font-size: 0.85rem;
+      font-style: italic;
+      
+      strong {
+        font-weight: 600;
+      }
+    }
   }
 }
 
