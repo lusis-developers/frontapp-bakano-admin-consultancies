@@ -6,9 +6,11 @@ import useClientAndBusinessStore from '@/stores/clientAndBusiness'
 import { MeetingStatus, MeetingType } from '@/enums/meetingStatus.enum'
 import TransactionList from './client/TransactionList.vue'
 import AssignMeeting from './client/AssignMeeting.vue'
+import MVPAccountsSection from './client/MVPAccountsSection.vue'
 import { useConfirmationDialog } from '@/composables/useConfirmationDialog'
 import { useToast } from '@/composables/useToast'
 
+// --- SETUP ---
 const route = useRoute()
 const router = useRouter()
 const store = useClientAndBusinessStore()
@@ -17,12 +19,13 @@ const { triggerToast } = useToast()
 
 const clientId = route.params.clientId as string
 const transactionCurrentPage = ref(1)
-const isConfirmingAccess = ref(false)
+const isActionLoading = ref(false)
 
+
+// --- LÓGICA DE ACCIONES PENDIENTES ---
 const portfolioAccessMeeting = computed(() => {
   if (
-    store.meetingStatus?.hasScheduledMeeting &&
-    store.meetingStatus.meeting?.meetingType === MeetingType.PORTFOLIO_ACCESS &&
+    store.meetingStatus?.meeting?.meetingType === MeetingType.PORTFOLIO_ACCESS &&
     store.meetingStatus.meeting?.status === MeetingStatus.SCHEDULED
   ) {
     return store.meetingStatus.meeting
@@ -30,27 +33,121 @@ const portfolioAccessMeeting = computed(() => {
   return null
 })
 
-const requestPortfolioConfirmation = async () => {
+const dataStrategyMeeting = computed(() => {
+  if (
+    store.meetingStatus?.meeting?.meetingType === MeetingType.DATA_STRATEGY &&
+    store.meetingStatus.meeting?.status === MeetingStatus.SCHEDULED
+  ) {
+    return store.meetingStatus.meeting
+  }
+  return null
+})
+
+const pendingActions = computed(() => {
+  const actions = []
+
+  if (portfolioAccessMeeting.value) {
+    actions.push({
+      key: 'portfolio-access',
+      title: 'Acceso a Portafolio Pendiente',
+      description: 'Confirmar que se ha verificado el acceso al portafolio para habilitar la reunión de estrategia.',
+      buttonText: 'Confirmar Acceso',
+      buttonIcon: 'fa-check-circle',
+      handler: requestPortfolioConfirmation,
+    })
+  }
+
+  if (dataStrategyMeeting.value) {
+    actions.push({
+      key: 'data-strategy',
+      title: 'Reunión de Estrategia Pendiente',
+      description: 'Confirmar que la reunión de estrategia de datos ha sido completada exitosamente.',
+      buttonText: 'Marcar como Completada',
+      buttonIcon: 'fa-flag-checkered',
+      handler: requestDataStrategyCompletion,
+    })
+  }
+
+  return actions
+})
+
+
+// --- HANDLERS DE ACCIONES ---
+async function requestPortfolioConfirmation() {
   if (!portfolioAccessMeeting.value || !store.client) return
 
   try {
     const confirmed = await reveal({
       title: 'Confirmar Verificación de Acceso',
-      message: `Estás a punto de confirmar el acceso para el cliente ${store.client.name}. Al hacerlo, se habilitará el siguiente paso: la reunión de estrategia. ¿Deseas continuar?`,
+      message: `Estás a punto de confirmar el acceso para ${store.client.name}. Al hacerlo, se habilitará la reunión de estrategia. ¿Deseas continuar?`,
     })
 
     if (confirmed) {
-      isConfirmingAccess.value = true
+      isActionLoading.value = true
+      // ✅ LA CORRECCIÓN ESTÁ AQUÍ: Usamos .id porque es lo que devuelve el endpoint getClientMeetingStatus
       await store.confirmPortfolioAccess(portfolioAccessMeeting.value.id)
-      triggerToast('Acceso confirmado y siguiente paso habilitado.')
+      triggerToast('Acceso confirmado y siguiente paso habilitado.', 'success')
     }
-  } catch (error) {
-    console.log('Confirmación de acceso cancelada por el usuario.')
+  } catch {
+    triggerToast('Acción cancelada.', 'info')
   } finally {
-    isConfirmingAccess.value = false
+    isActionLoading.value = false
   }
 }
 
+async function requestDataStrategyCompletion() {
+  if (!dataStrategyMeeting.value || !store.client) return
+
+  try {
+    const confirmed = await reveal({
+      title: 'Confirmar Finalización de Reunión',
+      message: `Vas a marcar la reunión de estrategia para ${store.client.name} como completada. Esto finalizará el paso actual. ¿Estás seguro?`,
+    })
+
+    if (confirmed) {
+      isActionLoading.value = true
+      // ✅ CORRECCIÓN: Usamos .id también aquí por consistencia.
+      await store.completeDataStrategyMeeting(dataStrategyMeeting.value.id)
+      triggerToast('Reunión de estrategia completada.', 'success')
+    }
+  } catch {
+    triggerToast('Acción cancelada.', 'info')
+  } finally {
+    isActionLoading.value = false
+  }
+}
+
+// Handler para eliminar una reunión del historial
+async function handleDeleteMeeting(meeting: { _id: string; meetingType: string; scheduledTime?: string | Date }) {
+  if (!meeting || !meeting._id) {
+    triggerToast('Error: No se pudo identificar la reunión a eliminar.', 'error');
+    return;
+  }
+
+  try {
+    const confirmed = await reveal({
+      title: 'Confirmar Eliminación de Reunión',
+      message: `Estás a punto de eliminar permanentemente la reunión de tipo "${meeting.meetingType}" del ${formatDate(meeting.scheduledTime)}. Esta acción no se puede deshacer.`,
+      confirmationText: 'ELIMINAR'
+    });
+
+    if (confirmed) {
+      isActionLoading.value = true;
+      const success = await store.deleteMeeting(meeting._id);
+      if (success) {
+        triggerToast('Reunión eliminada correctamente.', 'success');
+      } else {
+        triggerToast('No se pudo eliminar la reunión.', 'error');
+      }
+    }
+  } catch {
+    triggerToast('Eliminación cancelada.', 'info');
+  } finally {
+    isActionLoading.value = false;
+  }
+}
+
+// --- LÓGICA Y CICLO DE VIDA ---
 onMounted(async () => {
   await Promise.all([
     store.fetchClientWithDetails(clientId),
@@ -60,8 +157,7 @@ onMounted(async () => {
   ])
 })
 
-const formatDate = (date?: string | Date) =>
-  date ? format(new Date(date), 'dd MMMM, yyyy HH:mm') : 'No agendada'
+const formatDate = (date?: string | Date) => (date ? format(new Date(date), 'dd MMMM, yyyy HH:mm') : 'No agendada')
 
 const handleFilterChange = async (payload: { from: string | null; to: string | null }) => {
   await store.setTransactionFilter(clientId, payload)
@@ -75,17 +171,11 @@ const copyToClipboard = async (textToCopy: string | undefined) => {
     triggerToast('¡Copiado al portapapeles!')
   } catch (err) {
     triggerToast('Error al copiar', 'error')
-    console.error('Error al copiar:', err)
   }
 }
 
-const goToBusiness = (businessId: string) => {
-  router.push({ name: 'businessDetails', params: { clientId, businessId } })
-}
-
-const goToAllBusinesses = () => {
-  router.push({ name: 'businesses', params: { clientId } })
-}
+const goToBusiness = (businessId: string) => router.push({ name: 'businessDetails', params: { clientId, businessId } })
+const goToAllBusinesses = () => router.push({ name: 'businesses', params: { clientId } })
 
 const getMeetingIcon = (type: MeetingType): string => {
   const icons: Record<MeetingType, string> = {
@@ -97,9 +187,7 @@ const getMeetingIcon = (type: MeetingType): string => {
   return icons[type] || 'fa-solid fa-calendar-day'
 }
 
-const handlePageChange = (newPage: number) => {
-  transactionCurrentPage.value = newPage
-}
+const handlePageChange = (newPage: number) => { transactionCurrentPage.value = newPage }
 
 const handleDeleteTransaction = async (transactionId: string) => {
   const success = await store.removeTransaction(transactionId)
@@ -182,14 +270,22 @@ watch(transactionCurrentPage, (newPage) => {
       </div>
 
       <div class="sidebar-column">
-        <section class="card actions-card" v-if="portfolioAccessMeeting">
-          <h3>Acciones Pendientes</h3>
+        <section
+          v-for="action in pendingActions"
+          :key="action.key"
+          class="card actions-card"
+        >
+          <h3>{{ action.title }}</h3>
           <p class="action-description">
-            Confirmar que se ha verificado el acceso al portafolio comercial para habilitar la reunión de estrategia.
+            {{ action.description }}
           </p>
-          <button @click="requestPortfolioConfirmation" :disabled="isConfirmingAccess" class="confirm-access-button">
-            <span v-if="isConfirmingAccess"> <i class="fas fa-spinner fa-spin"></i> Procesando... </span>
-            <span v-else> <i class="fas fa-check-circle"></i> Confirmar Acceso </span>
+          <button @click="action.handler" :disabled="isActionLoading" class="confirm-access-button">
+            <span v-if="isActionLoading">
+              <i class="fas fa-spinner fa-spin"></i> Procesando...
+            </span>
+            <span v-else>
+              <i class="fas" :class="action.buttonIcon"></i> {{ action.buttonText }}
+            </span>
           </button>
         </section>
 
@@ -198,18 +294,29 @@ watch(transactionCurrentPage, (newPage) => {
             <i class="fas fa-history header-icon"></i>
             <h3>Historial de Reuniones</h3>
           </div>
-          <ul v-if="store.meetingsHistory && store.meetingsHistory.length > 0" class="meeting-list">
-            <li v-for="meeting in store.meetingsHistory" :key="meeting.id" class="meeting-item">
+          <ul v-if="store.meetingsHistory?.length" class="meeting-list">
+            <li v-for="meeting in store.meetingsHistory" :key="meeting._id" class="meeting-item">
               <i :class="getMeetingIcon(meeting.meetingType)" class="meeting-icon"></i>
               <div class="meeting-details">
                 <span class="meeting-type-text">{{ meeting.meetingType }} con {{ meeting.assignedTo }}</span>
                 <span class="meeting-time">{{ formatDate(meeting.scheduledTime) }}</span>
               </div>
               <span class="status-badge" :class="`status-${meeting.status}`">{{ meeting.status }}</span>
+              
+              <button 
+                @click.stop="handleDeleteMeeting(meeting)" 
+                class="delete-meeting-btn"
+                title="Eliminar reunión"
+                :disabled="isActionLoading"
+              >
+                <i class="fas fa-trash-alt"></i>
+              </button>
             </li>
           </ul>
           <p v-else class="empty-state">No hay reuniones registradas.</p>
         </section>
+
+        <MVPAccountsSection :client-id="clientId" />
         <AssignMeeting />
         <TransactionList
           :transactions="store.transactions"
@@ -457,18 +564,12 @@ watch(transactionCurrentPage, (newPage) => {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem 1rem;
+  gap: 0.75rem;
   padding: 0.8rem 0.5rem;
   border-bottom: 1px solid $BAKANO-LIGHT;
 
   &:last-child {
     border-bottom: none;
-  }
-
-  @media (min-width: 500px) {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    flex-wrap: nowrap;
   }
 }
 
@@ -486,11 +587,12 @@ watch(transactionCurrentPage, (newPage) => {
 }
 
 .meeting-details {
+  flex-grow: 1;
+  flex-basis: 200px;
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
   overflow: hidden;
-  flex-grow: 1;
 }
 
 .meeting-type-text {
@@ -506,6 +608,7 @@ watch(transactionCurrentPage, (newPage) => {
 }
 
 .status-badge {
+  margin-left: auto;
   font-family: $font-principal;
   font-weight: 600;
   text-transform: uppercase;
@@ -514,10 +617,12 @@ watch(transactionCurrentPage, (newPage) => {
   font-size: 0.7rem;
   letter-spacing: 0.5px;
   white-space: nowrap;
-  margin-left: auto;
 
-  @media (min-width: 500px) {
+  @media (max-width: 550px) {
     margin-left: 0;
+    flex-basis: 100%;
+    text-align: right;
+    order: 2;
   }
 
   &.status-scheduled {
@@ -539,6 +644,41 @@ watch(transactionCurrentPage, (newPage) => {
   &.status-pending-schedule {
     background-color: lighten(orange, 35%);
     color: darken(orange, 10%);
+  }
+}
+
+.delete-meeting-btn {
+  background: none;
+  border: none;
+  color: #a0aec0;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease-in-out;
+  flex-shrink: 0;
+
+  &:hover:not(:disabled) {
+    background-color: lighten($BAKANO-PINK, 40%);
+    color: darken($BAKANO-PINK, 10%);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  i {
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 550px) {
+    margin-left: auto;
+    order: 1;
   }
 }
 

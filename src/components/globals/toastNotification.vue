@@ -13,6 +13,7 @@ const toastIcon = computed(() => {
   switch (toastType.value) {
     case 'success': return 'fa-check-circle';
     case 'error': return 'fa-times-circle';
+    case 'warning': return 'fa-exclamation-triangle';
     default: return 'fa-info-circle';
   }
 });
@@ -68,6 +69,14 @@ const toastIcon = computed(() => {
 
 .toast--info {
   background-color: rgba($BAKANO-PURPLE, 0.9);
+
+  i {
+    color: $white;
+  }
+}
+
+.toast--warning {
+  background-color: rgba(#F0AD4E, 0.9);
 
   i {
     color: $white;

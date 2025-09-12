@@ -62,8 +62,20 @@ class ClientsService extends APIBase {
     clientId: string,
     portfolioMeetingId: string,
   ): Promise<ConfirmationResponse> {
-    const response = await this.post(`client/${clientId}/confirm-strategy-meeting`, {
+    const payload = {
       portfolioMeetingId: portfolioMeetingId,
+    }
+
+    const response = await this.post(`client/${clientId}/confirm-strategy-meeting`, payload)
+    return response.data as ConfirmationResponse
+  }
+
+  public async completeDataStrategyMeeting(
+    clientId: string,
+    dataStrategyMeetingId: string,
+  ): Promise<ConfirmationResponse> {
+    const response = await this.post(`client/${clientId}/complete-data-strategy-meeting`, {
+      strategyMeetingId: dataStrategyMeetingId,
     })
     return response.data as ConfirmationResponse
   }
@@ -126,6 +138,10 @@ class ClientsService extends APIBase {
 
     const response = await this.get<UnifiedSearchResponse>(`search?${params.toString()}`)
     return response.data
+  }
+
+  public async deleteMeeting(meetingId: string): Promise<void> {
+    await this.delete(`meeting/${meetingId}`)
   }
 }
 

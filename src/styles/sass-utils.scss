@@ -1,0 +1,10 @@
+@use "sass:color";
+
+// Funciones de utilidad para reemplazar las funciones obsoletas de Sass
+@function darken($color, $amount) {
+  @return color.adjust($color, $lightness: -$amount);
+}
+
+@function lighten($color, $amount) {
+  @return color.adjust($color, $lightness: $amount);
+}
