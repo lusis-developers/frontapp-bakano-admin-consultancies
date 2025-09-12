@@ -23,6 +23,7 @@ const { reveal } = useConfirmationDialog()
 
 const isExpanded = ref(false)
 const loadingItems = ref<Set<string>>(new Set())
+const selectedPhaseIndex = ref<number | null>(null)
 
 const currentPhaseProgress = computed(() => {
   if (!checklistStore.currentPhase) return 0
@@ -105,6 +106,34 @@ const isItemLoading = (phaseId: string, itemId: string) => {
   return loadingItems.value.has(`${phaseId}-${itemId}`)
 }
 
+const selectPhase = (index: number) => {
+  // Si ya está seleccionada la misma fase, la desmarcamos
+  if (selectedPhaseIndex.value === index) {
+    selectedPhaseIndex.value = null
+    return
+  }
+  // Si es la fase actual y no hay ninguna seleccionada, la desmarcamos también
+  if (index === checklistStore.checklist?.currentPhase && selectedPhaseIndex.value === null) {
+    return
+  }
+  // Seleccionar la nueva fase
+  selectedPhaseIndex.value = index
+}
+
+const getSelectedPhase = computed(() => {
+  if (selectedPhaseIndex.value === null || !checklistStore.checklist) {
+    return checklistStore.currentPhase
+  }
+  return checklistStore.checklist.phases[selectedPhaseIndex.value]
+})
+
+const getSelectedPhaseProgress = computed(() => {
+  const phase = getSelectedPhase.value
+  if (!phase) return 0
+  const completedItems = phase.items.filter(item => item.completed).length
+  return Math.round((completedItems / phase.items.length) * 100)
+})
+
 onMounted(async () => {
   await Promise.all([
     checklistStore.fetchChecklist(props.businessId),
@@ -151,38 +180,54 @@ onMounted(async () => {
           v-for="(phase, index) in checklistStore.checklist.phases" 
           :key="phase.id"
           class="phase-indicator"
-          :class="getPhaseStatusClass(phase, index)"
+          :class="[
+            getPhaseStatusClass(phase, index),
+            { 'selected': selectedPhaseIndex === index }
+          ]"
+          @click="selectPhase(index)"
         >
           <div class="phase-number">{{ index + 1 }}</div>
           <span class="phase-name">{{ phase.name }}</span>
+          <div class="phase-items-count">
+            {{ phase.items.filter(item => item.completed).length }}/{{ phase.items.length }}
+          </div>
         </div>
       </div>
 
-      <!-- Fase Actual -->
-      <div v-if="checklistStore.currentPhase" class="current-phase">
+      <!-- Fase Seleccionada o Actual -->
+      <div v-if="getSelectedPhase" class="current-phase">
         <div class="phase-header">
-          <h4>{{ checklistStore.currentPhase.name }}</h4>
+          <h4>
+            {{ getSelectedPhase.name }}
+            <span v-if="selectedPhaseIndex !== null" class="phase-status-badge">
+              {{ selectedPhaseIndex < checklistStore.checklist!.currentPhase ? 'Completada' : 
+                  selectedPhaseIndex === checklistStore.checklist!.currentPhase ? 'Actual' : 'Pendiente' }}
+            </span>
+          </h4>
           <div class="phase-progress">
-            <span class="progress-text">{{ currentPhaseProgress }}%</span>
+            <span class="progress-text">{{ getSelectedPhaseProgress }}%</span>
             <div class="progress-bar small">
-              <div class="progress-fill" :style="{ width: `${currentPhaseProgress}%` }"></div>
+              <div class="progress-fill" :style="{ width: `${getSelectedPhaseProgress}%` }"></div>
             </div>
           </div>
         </div>
 
         <div class="items-list">
           <div 
-            v-for="item in checklistStore.currentPhase.items" 
+            v-for="item in getSelectedPhase.items" 
             :key="item.id"
             class="checklist-item"
-            :class="{ completed: item.completed, loading: isItemLoading(checklistStore.currentPhase!.id, item.id) }"
+            :class="{ 
+              completed: item.completed, 
+              loading: isItemLoading(getSelectedPhase.id, item.id)
+            }"
           >
             <button 
-              @click="handleToggleItem(checklistStore.currentPhase!.id, item)"
+              @click="handleToggleItem(getSelectedPhase.id, item)"
               class="item-toggle"
-              :disabled="isItemLoading(checklistStore.currentPhase!.id, item.id)"
+              :disabled="isItemLoading(getSelectedPhase.id, item.id)"
             >
-              <i v-if="isItemLoading(checklistStore.currentPhase!.id, item.id)" class="fas fa-spinner fa-spin"></i>
+              <i v-if="isItemLoading(getSelectedPhase.id, item.id)" class="fas fa-spinner fa-spin"></i>
               <i v-else :class="getItemIcon(item)"></i>
             </button>
             <div class="item-content">
@@ -198,7 +243,7 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div v-if="canMoveToNextPhase && !checklistStore.isChecklistComplete" class="phase-actions">
+        <div v-if="canMoveToNextPhase && !checklistStore.isChecklistComplete && (selectedPhaseIndex === null || selectedPhaseIndex === checklistStore.checklist!.currentPhase)" class="phase-actions">
           <button 
             @click="handleMoveToNextPhase"
             class="btn-next-phase"
@@ -355,6 +400,18 @@ onMounted(async () => {
   padding: 0.75rem 0.5rem;
   border-radius: 8px;
   transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba($BAKANO-DARK, 0.1);
+  }
+  
+  &.selected {
+    border: 2px solid $BAKANO-PURPLE;
+    box-shadow: 0 0 0 3px rgba($BAKANO-PURPLE, 0.1);
+  }
   
   &.completed {
     background: lighten($BAKANO-GREEN, 35%);
@@ -367,6 +424,11 @@ onMounted(async () => {
     .phase-name {
       color: darken($BAKANO-GREEN, 10%);
       font-weight: 600;
+    }
+    
+    &.selected {
+      border-color: $BAKANO-GREEN;
+      box-shadow: 0 0 0 3px rgba($BAKANO-GREEN, 0.1);
     }
   }
   
@@ -395,6 +457,11 @@ onMounted(async () => {
     .phase-name {
       color: rgba($BAKANO-DARK, 0.6);
     }
+    
+    &.selected {
+      border-color: rgba($BAKANO-DARK, 0.3);
+      box-shadow: 0 0 0 3px rgba($BAKANO-DARK, 0.05);
+    }
   }
 }
 
@@ -415,6 +482,16 @@ onMounted(async () => {
   line-height: 1.2;
 }
 
+.phase-items-count {
+  font-size: 0.7rem;
+  color: rgba($BAKANO-DARK, 0.6);
+  font-weight: 500;
+  background: rgba($white, 0.8);
+  padding: 0.2rem 0.4rem;
+  border-radius: 10px;
+  margin-top: 0.2rem;
+}
+
 .current-phase {
   .phase-header {
     display: flex;
@@ -430,6 +507,10 @@ onMounted(async () => {
       font-weight: 600;
       color: $BAKANO-DARK;
       margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
     }
   }
   
@@ -476,6 +557,8 @@ onMounted(async () => {
     opacity: 0.7;
     pointer-events: none;
   }
+  
+
 }
 
 .item-toggle {
@@ -575,6 +658,16 @@ onMounted(async () => {
     margin-right: 0.5rem;
     font-size: 1.2rem;
   }
+}
+
+.phase-status-badge {
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  background: rgba($BAKANO-PURPLE, 0.1);
+  color: $BAKANO-PURPLE;
+  border: 1px solid rgba($BAKANO-PURPLE, 0.2);
 }
 
 @media (max-width: 768px) {
