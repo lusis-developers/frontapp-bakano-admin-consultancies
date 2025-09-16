@@ -2,7 +2,8 @@ import type {
   IChecklist,
   ChecklistResponse,
   ChecklistProgressResponse,
-  UpdateChecklistItemRequest
+  UpdateChecklistItemRequest,
+  UpdatePhaseObservationsRequest
 } from '@/types/checklist.interface'
 import APIBase from './httpBase'
 
@@ -35,6 +36,21 @@ class ChecklistService extends APIBase {
   ) {
     return this.patch<ChecklistResponse>(
       `checklist/${businessId}/phase/${phaseId}/item/${itemId}`,
+      data
+    )
+  }
+
+  /**
+   * Actualiza las observaciones de una fase del checklist.
+   * Corresponde a: PATCH /checklist/:businessId/phase/:phaseId/observations
+   */
+  updatePhaseObservations(
+    businessId: string,
+    phaseId: string,
+    data: UpdatePhaseObservationsRequest
+  ) {
+    return this.patch<ChecklistResponse>(
+      `checklist/${businessId}/phase/${phaseId}/observations`,
       data
     )
   }
