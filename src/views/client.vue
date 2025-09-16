@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { format } from 'date-fns'
 import useClientAndBusinessStore from '@/stores/clientAndBusiness'
 import { MeetingStatus, MeetingType } from '@/enums/meetingStatus.enum'
+import { ClientTypeEnum } from '@/enums/clientType.enum'
 import TransactionList from './client/TransactionList.vue'
 import AssignMeeting from './client/AssignMeeting.vue'
 import MVPAccountsSection from './client/MVPAccountsSection.vue'
@@ -159,6 +160,15 @@ onMounted(async () => {
 
 const formatDate = (date?: string | Date) => (date ? format(new Date(date), 'dd MMMM, yyyy HH:mm') : 'No agendada')
 
+const getClientTypeLabel = (clientType: string): string => {
+  const typeLabels: Record<string, string> = {
+    [ClientTypeEnum.LOW]: 'Bajo',
+    [ClientTypeEnum.MEDIUM]: 'Medio',
+    [ClientTypeEnum.HIGH]: 'Alto'
+  }
+  return typeLabels[clientType] || clientType
+}
+
 const handleFilterChange = async (payload: { from: string | null; to: string | null }) => {
   await store.setTransactionFilter(clientId, payload)
   transactionCurrentPage.value = 1
@@ -242,6 +252,12 @@ watch(transactionCurrentPage, (newPage) => {
             <div class="info-item">
               <span class="info-label">Ubicación</span>
               <span class="info-value">{{ store.client.city }}, {{ store.client.country }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Tipo de Cliente</span>
+              <span class="info-value client-type" :class="`client-type-${store.client.clientType}`">
+                {{ getClientTypeLabel(store.client.clientType) }}
+              </span>
             </div>
           </div>
         </section>
@@ -463,6 +479,31 @@ watch(transactionCurrentPage, (newPage) => {
 
   &:hover .copy-icon {
     color: $BAKANO-PURPLE;
+  }
+}
+
+.client-type {
+  font-weight: 600;
+  padding: 0.3rem 0.8rem;
+  border-radius: 12px;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  display: inline-block;
+
+  &.client-type-low {
+    background-color: lighten($BAKANO-GREEN, 35%);
+    color: darken($BAKANO-GREEN, 15%);
+  }
+
+  &.client-type-medium {
+    background-color: lighten(orange, 35%);
+    color: darken(orange, 15%);
+  }
+
+  &.client-type-high {
+    background-color: lighten($BAKANO-PINK, 35%);
+    color: darken($BAKANO-PINK, 15%);
   }
 }
 
