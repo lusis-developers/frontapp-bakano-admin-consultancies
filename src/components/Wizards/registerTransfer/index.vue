@@ -7,6 +7,7 @@ import Step3 from './steps/step3.vue'
 import Step4 from './steps/step4.vue'
 import paymentService from '@/services/paymentsService'
 import ConfirmCloseModal from '@/components/modals/confirmCloseModal.vue'
+import ValuePropositionModal from '@/components/modals/ValuePropositionModal.vue'
 
 import type { ManualPaymentForm } from '@/types/manualTransfer.interface'
 import { PayMethod } from '@/enums/payMethod.enum'
@@ -26,8 +27,10 @@ const getInitialFormState = (): ManualPaymentForm => ({
   bank: '',
   clientId: '',
   country: 'ecuador',
+  clientType: null,
   paymentMethod: null,
-  businessType: null, // <-- ESTA LÍNEA ES LA SOLUCIÓN PRINCIPAL
+  businessType: null,
+  valueProposition: '',
   mongoId: null,
 })
 
@@ -39,6 +42,8 @@ const success = ref(false)
 const stepValid = ref(false)
 const wasConfirmed = ref(false)
 const showConfirmClose = ref(false)
+const showValuePropositionModal = ref(false)
+const isFirstPayment = ref(false)
 
 const steps = [0, 1, 2, 3, 4]
 
@@ -69,10 +74,17 @@ const handleSubmit = async () => {
   isLoading.value = true
   error.value = ''
   try {
-    await paymentService.registerManualTransfer(form.value)
+    const response = await paymentService.registerManualTransfer(form.value)
     success.value = true
     wasConfirmed.value = true
     currentStep.value = 4
+    
+    // Si es el primer pago y no hay propuesta de valor, mostrar el modal
+    if ((response as any)?.data?.isFirstPayment && !form.value.valueProposition?.trim()) {
+      isFirstPayment.value = true
+      showValuePropositionModal.value = true
+    }
+    
     emit('success')
   } catch (err: any) {
     error.value = err.message || 'Error al registrar el pago'
@@ -94,6 +106,15 @@ const confirmClose = () => {
 }
 const cancelClose = () => {
   showConfirmClose.value = false
+}
+
+const handleValuePropositionSave = (valueProposition: string) => {
+  form.value.valueProposition = valueProposition
+  showValuePropositionModal.value = false
+}
+
+const handleValuePropositionClose = () => {
+  showValuePropositionModal.value = false
 }
 
 const isDirty = computed(() => {
@@ -177,6 +198,14 @@ watch(
     </div>
   </div>
   <ConfirmCloseModal :open="showConfirmClose" @confirm="confirmClose" @cancel="cancelClose" />
+  
+  <ValuePropositionModal
+    :is-open="showValuePropositionModal"
+    :client-name="form.clientName"
+    :business-name="form.businessName"
+    @save="handleValuePropositionSave"
+    @close="handleValuePropositionClose"
+  />
 </template>
 
 <style scoped lang="scss">
