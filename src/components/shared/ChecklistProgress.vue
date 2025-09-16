@@ -3,7 +3,6 @@ import { computed, onMounted, ref } from 'vue'
 import { useChecklistStore } from '@/stores/checklist'
 import type { IChecklistItem, IChecklistPhase } from '@/types/checklist.interface'
 import { useToast } from '@/composables/useToast'
-import { useConfirmationDialog } from '@/composables/useConfirmationDialog'
 
 const props = defineProps({
   businessId: {
@@ -19,7 +18,6 @@ const props = defineProps({
 
 const checklistStore = useChecklistStore()
 const { triggerToast } = useToast()
-const { reveal } = useConfirmationDialog()
 
 const isExpanded = ref(false)
 const loadingItems = ref<Set<string>>(new Set())
@@ -42,18 +40,11 @@ const overallProgress = computed(() => {
   return Math.round((completedItems / totalItems) * 100)
 })
 
+// Computed properties relacionados con completación de fases removidos
+// Solo mantenemos canMoveToNextPhase como referencia informativa
 const canMoveToNextPhase = computed(() => {
   if (!checklistStore.currentPhase) return false
   return checklistStore.currentPhase.items.every(item => item.completed)
-})
-
-const showCompletionWarning = computed(() => {
-  return canMoveToNextPhase.value && checklistStore.currentPhase
-})
-
-const isLastPhase = computed(() => {
-  if (!checklistStore.checklist) return false
-  return checklistStore.checklist.currentPhase === checklistStore.checklist.phases.length - 1
 })
 
 const handleToggleItem = async (phaseId: string, item: IChecklistItem) => {
@@ -79,33 +70,7 @@ const handleToggleItem = async (phaseId: string, item: IChecklistItem) => {
   }
 }
 
-const handleMoveToNextPhase = async () => {
-  if (!checklistStore.currentPhase) return
-  
-  try {
-    const isFinalizingChecklist = isLastPhase.value
-    
-    const confirmed = await reveal({
-      title: isFinalizingChecklist ? '⚠️ Finalizar Checklist Completo' : '⚠️ Confirmar Avance de Fase',
-      message: isFinalizingChecklist 
-        ? `Estás a punto de finalizar completamente el checklist "${checklistStore.currentPhase.name}". <br><br><strong>ADVERTENCIA:</strong> Esta acción marcará todo el proceso como completado definitivamente y no se puede deshacer.`
-        : `Estás a punto de avanzar de "${checklistStore.currentPhase.name}" a la siguiente fase. <br><br><strong>ADVERTENCIA:</strong> Esta acción no se puede deshacer y marcará todos los pasos como completados definitivamente.`,
-      confirmationText: 'confirmar'
-    })
-    
-    if (confirmed) {
-      await checklistStore.moveToNextPhase(props.businessId)
-      triggerToast(
-        isFinalizingChecklist ? 'Checklist finalizado exitosamente' : 'Fase avanzada exitosamente', 
-        'success'
-      )
-    }
-  } catch (error: any) {
-    if (error.message) {
-      triggerToast(error.message, 'error')
-    }
-  }
-}
+// Método handleMoveToNextPhase removido - ya no se maneja avance de fases desde este componente
 
 // El checklist se completa automáticamente cuando todas las fases están completadas
 
@@ -262,35 +227,7 @@ onMounted(async () => {
           </div>
         </div>
 
-        <!-- Warning cuando todos los items están completados -->
-        <div v-if="showCompletionWarning && (selectedPhaseIndex === null || selectedPhaseIndex === checklistStore.checklist!.currentPhase)" class="completion-warning">
-          <div class="warning-content">
-            <i class="fas fa-exclamation-triangle warning-icon"></i>
-            <div class="warning-text">
-              <h4>⚠️ Todos los pasos completados</h4>
-              <p>Has completado todos los elementos de esta fase. Para continuar al siguiente paso, confirma tu decisión.</p>
-              <p class="warning-note">
-                <strong>Importante:</strong> Esta acción no se puede deshacer.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="canMoveToNextPhase && (selectedPhaseIndex === null || selectedPhaseIndex === checklistStore.checklist!.currentPhase)" class="phase-actions">
-          <button 
-            @click="handleMoveToNextPhase"
-            class="btn-next-phase"
-            :disabled="checklistStore.isLoading"
-          >
-            <i class="fas fa-arrow-right"></i>
-            {{ isLastPhase ? 'Finalizar checklist' : 'Confirmar siguiente paso' }}
-          </button>
-        </div>
-
-        <div v-if="checklistStore.isChecklistComplete" class="completion-message">
-          <i class="fas fa-trophy"></i>
-          <span>¡Checklist completado exitosamente!</span>
-        </div>
+        <!-- Sección de warnings, avance automático y completion-message removida -->
       </div>
     </div>
   </div>
@@ -646,104 +583,7 @@ onMounted(async () => {
   }
 }
 
-.phase-actions {
-  display: flex;
-  justify-content: center;
-  padding-top: 1rem;
-  border-top: 1px solid $BAKANO-LIGHT;
-}
-
-.btn-next-phase {
-  background: $BAKANO-GREEN;
-  color: $white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-family: $font-principal;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  
-  &:hover:not(:disabled) {
-    background: darken($BAKANO-GREEN, 8%);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba($BAKANO-GREEN, 0.3);
-  }
-  
-  &:disabled {
-    background: rgba($BAKANO-DARK, 0.3);
-    cursor: not-allowed;
-  }
-}
-
-.completion-message {
-  text-align: center;
-  padding: 1.5rem;
-  background: lighten($BAKANO-GREEN, 45%);
-  border-radius: 8px;
-  color: darken($BAKANO-GREEN, 10%);
-  font-weight: 600;
-  
-  i {
-    margin-right: 0.5rem;
-    font-size: 1.2rem;
-  }
-}
-
-.completion-warning {
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background: lighten($BAKANO-PINK, 40%);
-  border: 1px solid lighten($BAKANO-PINK, 20%);
-  border-radius: 8px;
-  
-  .warning-content {
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-  
-  .warning-icon {
-    color: $BAKANO-PINK;
-    font-size: 1.5rem;
-    flex-shrink: 0;
-    margin-top: 0.25rem;
-  }
-  
-  .warning-text {
-    flex: 1;
-    
-    h4 {
-      margin: 0 0 0.5rem 0;
-      color: darken($BAKANO-PINK, 10%);
-      font-size: 1rem;
-      font-weight: 600;
-    }
-    
-    p {
-      margin: 0 0 0.5rem 0;
-      color: darken($BAKANO-PINK, 15%);
-      font-size: 0.9rem;
-      line-height: 1.4;
-      
-      &:last-child {
-        margin-bottom: 0;
-      }
-    }
-    
-    .warning-note {
-      font-size: 0.85rem;
-      font-style: italic;
-      
-      strong {
-        font-weight: 600;
-      }
-    }
-  }
-}
+// Estilos relacionados con completion-message y completion-warning removidos
 
 .phase-status-badge {
   font-size: 0.8rem;
