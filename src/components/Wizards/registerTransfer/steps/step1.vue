@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import type { Client } from '@/types/client.inteface'
 import clientService from '@/services/clientService'
 import type { ManualPaymentForm } from '@/types/manualTransfer.interface'
+import { ClientTypeEnum } from '@/enums/clientType.enum'
 import SearchableSelect from '@/components/shared/searchableSelect.vue'
 
 const props = defineProps<{ form: ManualPaymentForm }>()
@@ -73,6 +74,12 @@ const isFormValid = computed(() => {
     )
   }
 })
+
+const clientTypeOptions = computed(() => [
+  { label: 'Bajo', value: ClientTypeEnum.LOW },
+  { label: 'Medio', value: ClientTypeEnum.MEDIUM },
+  { label: 'Alto', value: ClientTypeEnum.HIGH },
+])
 
 watch(
   isFormValid,
@@ -153,6 +160,17 @@ const handleInputChange = (field: keyof ManualPaymentForm, value: string) => {
           @input="handleInputChange('country', ($event.target as HTMLInputElement).value)"
           type="text"
           placeholder="Ej: Ecuador"
+        />
+      </div>
+      <div class="form-group">
+        <label>Tipo de Cliente</label>
+        <SearchableSelect
+          :model-value="form.clientType"
+          :items="clientTypeOptions"
+          label-field="label"
+          value-field="value"
+          placeholder="Seleccionar tipo de cliente..."
+          @update:model-value="handleInputChange('clientType', $event as string)"
         />
       </div>
     </div>
