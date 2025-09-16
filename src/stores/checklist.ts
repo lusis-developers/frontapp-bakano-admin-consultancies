@@ -4,7 +4,8 @@ import type {
   IChecklist,
   IChecklistPhase,
   IChecklistItem,
-  UpdateChecklistItemRequest
+  UpdateChecklistItemRequest,
+  UpdatePhaseObservationsRequest
 } from '@/types/checklist.interface'
 import { checklistService } from '@/services/checklistService'
 
@@ -129,6 +130,34 @@ export const useChecklistStore = defineStore('checklist', () => {
     return await updateItem(businessId, phaseId, itemId, data)
   }
 
+  const updatePhaseObservations = async (
+    businessId: string,
+    phaseId: string,
+    data: UpdatePhaseObservationsRequest
+  ) => {
+    try {
+      isLoading.value = true
+      error.value = null
+      
+      const response = await checklistService.updatePhaseObservations(
+        businessId,
+        phaseId,
+        data
+      )
+      
+      // Actualizar el estado local
+      checklist.value = response.data.checklist
+      
+      return response
+    } catch (err: any) {
+      error.value = err.message || 'Error al actualizar las observaciones de la fase'
+      console.error('Error updating phase observations:', err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   const moveToNextPhase = async (businessId: string) => {
     try {
       isLoading.value = true
@@ -178,6 +207,7 @@ export const useChecklistStore = defineStore('checklist', () => {
     fetchProgress,
     updateItem,
     toggleItemCompletion,
+    updatePhaseObservations,
     moveToNextPhase,
     clearError,
     resetStore
