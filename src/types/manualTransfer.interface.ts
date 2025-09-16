@@ -1,5 +1,6 @@
 import type { BusinessTypeEnum } from '@/enums/businessType.enum'
 import type { PayMethod } from '@/enums/payMethod.enum'
+import type { ClientTypeEnum } from '@/enums/clientType.enum'
 
 export interface ManualPaymentForm {
   amount: number
@@ -9,9 +10,11 @@ export interface ManualPaymentForm {
   phone: string
   businessName: string
   businessType: BusinessTypeEnum | null
+  valueProposition?: string
   bank: string
   clientId: string
   country: string
+  clientType: ClientTypeEnum | null
   mongoId?: string | null
   paymentMethod: PayMethod | null
 }
