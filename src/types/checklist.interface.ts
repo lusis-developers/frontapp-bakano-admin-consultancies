@@ -13,6 +13,7 @@ export interface IChecklistPhase {
   items: IChecklistItem[]
   completed: boolean
   completedAt?: Date
+  observations?: string
 }
 
 export interface IChecklist {
@@ -47,4 +48,8 @@ export interface ChecklistProgressResponse {
 export interface UpdateChecklistItemRequest {
   completed: boolean
   completedBy?: string
+}
+
+export interface UpdatePhaseObservationsRequest {
+  observations: string
 }

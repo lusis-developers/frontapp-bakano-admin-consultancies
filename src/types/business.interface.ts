@@ -7,6 +7,7 @@ export interface Business {
   ruc?: string
   address?: string
   businessType: BusinessTypeEnum
+  valueProposition?: string
   phone?: string
   email?: string
   managers?: IManager[]

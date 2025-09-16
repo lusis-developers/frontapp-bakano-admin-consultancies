@@ -113,6 +113,10 @@ onMounted(async () => {
     <div v-else-if="store.selectedBusiness" class="details-grid">
       <div class="card info-card">
         <h2>{{ store.selectedBusiness.name }}</h2>
+        <div v-if="store.selectedBusiness.valueProposition" class="value-proposition">
+          <h3><i class="fas fa-bullseye"></i> Compromiso de Valor</h3>
+          <p class="value-text">{{ store.selectedBusiness.valueProposition }}</p>
+        </div>
         <p><strong>RUC/ID:</strong> <span class="copyable-text" @click="copyToClipboard(store.selectedBusiness.ruc!, 'ruc')">{{ store.selectedBusiness.ruc }}<i class="fas fa-copy copy-icon"></i></span><span v-if="copiedField === 'ruc'" class="copy-feedback">✓</span></p>
         <p><strong>Teléfono:</strong> <span class="copyable-text" @click="copyToClipboard(store.selectedBusiness.phone!, 'phone')">{{ store.selectedBusiness.phone }}<i class="fas fa-copy copy-icon"></i></span><span v-if="copiedField === 'phone'" class="copy-feedback">✓</span></p>
         <p><strong>Email:</strong> <span class="copyable-text" @click="copyToClipboard(store.selectedBusiness.email!, 'email')">{{ store.selectedBusiness.email }}<i class="fas fa-copy copy-icon"></i></span><span v-if="copiedField === 'email'" class="copy-feedback">✓</span></p>
@@ -308,6 +312,73 @@ onMounted(async () => {
     strong {
       color: $BAKANO-PURPLE;
       font-weight: 600;
+    }
+  }
+}
+
+.value-proposition {
+  background: linear-gradient(135deg, lighten($BAKANO-PURPLE, 45%) 0%, lighten($BAKANO-PURPLE, 40%) 100%);
+  border: 1px solid lighten($BAKANO-PURPLE, 30%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1rem 0 1.5rem 0;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: $BAKANO-PURPLE;
+  }
+
+  h3 {
+    color: darken($BAKANO-PURPLE, 10%);
+    font-family: $font-principal;
+    font-weight: 700;
+    font-size: 1rem;
+    margin: 0 0 0.75rem 0;
+    padding: 0;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    i {
+      font-size: 1.1rem;
+    }
+  }
+
+  .value-text {
+    color: darken($BAKANO-PURPLE, 15%);
+    font-size: 1.1rem;
+    line-height: 1.6;
+    font-weight: 500;
+    margin: 0;
+    font-style: italic;
+    position: relative;
+
+    &::before {
+      content: '"';
+      font-size: 2rem;
+      color: rgba($BAKANO-PURPLE, 0.3);
+      position: absolute;
+      left: -0.5rem;
+      top: -0.5rem;
+      font-family: serif;
+    }
+
+    &::after {
+      content: '"';
+      font-size: 2rem;
+      color: rgba($BAKANO-PURPLE, 0.3);
+      position: absolute;
+      right: -0.5rem;
+      bottom: -1rem;
+      font-family: serif;
     }
   }
 }

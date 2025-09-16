@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useChecklistStore } from '@/stores/checklist'
 import type { IChecklistItem, IChecklistPhase } from '@/types/checklist.interface'
 import { useToast } from '@/composables/useToast'
-import { useConfirmationDialog } from '@/composables/useConfirmationDialog'
+import { usePhaseObservations } from '@/composables/usePhaseObservations'
 
 const props = defineProps({
   businessId: {
@@ -19,7 +19,21 @@ const props = defineProps({
 
 const checklistStore = useChecklistStore()
 const { triggerToast } = useToast()
-const { reveal } = useConfirmationDialog()
+
+// Composable para manejar observaciones de fase
+const {
+  isEditingObservations,
+  observationsText,
+  isUpdatingObservations,
+  getPhaseObservations,
+  isPhaseBeingEdited,
+  hasObservations,
+  getObservationsPlaceholder,
+  canSaveObservations,
+  startEditingObservations,
+  cancelEditingObservations,
+  saveObservations
+} = usePhaseObservations()
 
 const isExpanded = ref(false)
 const loadingItems = ref<Set<string>>(new Set())
@@ -42,18 +56,11 @@ const overallProgress = computed(() => {
   return Math.round((completedItems / totalItems) * 100)
 })
 
+// Computed properties relacionados con completación de fases removidos
+// Solo mantenemos canMoveToNextPhase como referencia informativa
 const canMoveToNextPhase = computed(() => {
   if (!checklistStore.currentPhase) return false
   return checklistStore.currentPhase.items.every(item => item.completed)
-})
-
-const showCompletionWarning = computed(() => {
-  return canMoveToNextPhase.value && checklistStore.currentPhase
-})
-
-const isLastPhase = computed(() => {
-  if (!checklistStore.checklist) return false
-  return checklistStore.checklist.currentPhase === checklistStore.checklist.phases.length - 1
 })
 
 const handleToggleItem = async (phaseId: string, item: IChecklistItem) => {
@@ -79,33 +86,7 @@ const handleToggleItem = async (phaseId: string, item: IChecklistItem) => {
   }
 }
 
-const handleMoveToNextPhase = async () => {
-  if (!checklistStore.currentPhase) return
-  
-  try {
-    const isFinalizingChecklist = isLastPhase.value
-    
-    const confirmed = await reveal({
-      title: isFinalizingChecklist ? '⚠️ Finalizar Checklist Completo' : '⚠️ Confirmar Avance de Fase',
-      message: isFinalizingChecklist 
-        ? `Estás a punto de finalizar completamente el checklist "${checklistStore.currentPhase.name}". <br><br><strong>ADVERTENCIA:</strong> Esta acción marcará todo el proceso como completado definitivamente y no se puede deshacer.`
-        : `Estás a punto de avanzar de "${checklistStore.currentPhase.name}" a la siguiente fase. <br><br><strong>ADVERTENCIA:</strong> Esta acción no se puede deshacer y marcará todos los pasos como completados definitivamente.`,
-      confirmationText: 'confirmar'
-    })
-    
-    if (confirmed) {
-      await checklistStore.moveToNextPhase(props.businessId)
-      triggerToast(
-        isFinalizingChecklist ? 'Checklist finalizado exitosamente' : 'Fase avanzada exitosamente', 
-        'success'
-      )
-    }
-  } catch (error: any) {
-    if (error.message) {
-      triggerToast(error.message, 'error')
-    }
-  }
-}
+// Método handleMoveToNextPhase removido - ya no se maneja avance de fases desde este componente
 
 // El checklist se completa automáticamente cuando todas las fases están completadas
 
@@ -152,6 +133,19 @@ const getSelectedPhaseProgress = computed(() => {
   const completedItems = phase.items.filter(item => item.completed).length
   return Math.round((completedItems / phase.items.length) * 100)
 })
+
+// Métodos para manejar observaciones
+const handleEditObservations = (phaseId: string) => {
+  startEditingObservations(phaseId)
+}
+
+const handleSaveObservations = async (phaseId: string) => {
+  await saveObservations(props.businessId, phaseId)
+}
+
+const handleCancelObservations = () => {
+  cancelEditingObservations()
+}
 
 onMounted(async () => {
   await Promise.all([
@@ -262,35 +256,77 @@ onMounted(async () => {
           </div>
         </div>
 
-        <!-- Warning cuando todos los items están completados -->
-        <div v-if="showCompletionWarning && (selectedPhaseIndex === null || selectedPhaseIndex === checklistStore.checklist!.currentPhase)" class="completion-warning">
-          <div class="warning-content">
-            <i class="fas fa-exclamation-triangle warning-icon"></i>
-            <div class="warning-text">
-              <h4>⚠️ Todos los pasos completados</h4>
-              <p>Has completado todos los elementos de esta fase. Para continuar al siguiente paso, confirma tu decisión.</p>
-              <p class="warning-note">
-                <strong>Importante:</strong> Esta acción no se puede deshacer.
-              </p>
+        <!-- Sección de Observaciones de Fase -->
+        <div class="phase-observations">
+          <div class="observations-header">
+            <h5>
+              <i class="fas fa-sticky-note"></i>
+              Observaciones de la Fase
+            </h5>
+            <button 
+              v-if="!isPhaseBeingEdited(getSelectedPhase.id)"
+              @click="handleEditObservations(getSelectedPhase.id)"
+              class="edit-observations-btn"
+            >
+              <i class="fas fa-edit"></i>
+              {{ hasObservations(getSelectedPhase.id) ? 'Editar' : 'Agregar' }}
+            </button>
+          </div>
+
+          <!-- Mostrar observaciones existentes -->
+          <div 
+            v-if="!isPhaseBeingEdited(getSelectedPhase.id) && hasObservations(getSelectedPhase.id)"
+            class="observations-display"
+          >
+            <p class="observations-text">{{ getPhaseObservations(getSelectedPhase.id) }}</p>
+          </div>
+
+          <!-- Mensaje cuando no hay observaciones -->
+          <div 
+            v-if="!isPhaseBeingEdited(getSelectedPhase.id) && !hasObservations(getSelectedPhase.id)"
+            class="no-observations"
+          >
+            <i class="fas fa-info-circle"></i>
+            <span>No hay observaciones para esta fase</span>
+          </div>
+
+          <!-- Editor de observaciones -->
+          <div 
+            v-if="isPhaseBeingEdited(getSelectedPhase.id)"
+            class="observations-editor"
+          >
+            <textarea
+              v-model="observationsText"
+              :placeholder="getObservationsPlaceholder(getSelectedPhase.name)"
+              class="observations-textarea"
+              rows="4"
+              :disabled="isUpdatingObservations"
+            ></textarea>
+            
+            <div class="editor-actions">
+              <button 
+                @click="handleSaveObservations(getSelectedPhase.id)"
+                class="save-btn"
+                :disabled="!canSaveObservations"
+              >
+                <i v-if="isUpdatingObservations" class="fas fa-spinner fa-spin"></i>
+                <i v-else class="fas fa-save"></i>
+                {{ isUpdatingObservations ? 'Guardando...' : 'Guardar' }}
+              </button>
+              
+              <button 
+                @click="handleCancelObservations"
+                class="cancel-btn"
+                :disabled="isUpdatingObservations"
+              >
+                <i class="fas fa-times"></i>
+                Cancelar
+              </button>
             </div>
           </div>
         </div>
 
-        <div v-if="canMoveToNextPhase && (selectedPhaseIndex === null || selectedPhaseIndex === checklistStore.checklist!.currentPhase)" class="phase-actions">
-          <button 
-            @click="handleMoveToNextPhase"
-            class="btn-next-phase"
-            :disabled="checklistStore.isLoading"
-          >
-            <i class="fas fa-arrow-right"></i>
-            {{ isLastPhase ? 'Finalizar checklist' : 'Confirmar siguiente paso' }}
-          </button>
-        </div>
-
-        <div v-if="checklistStore.isChecklistComplete" class="completion-message">
-          <i class="fas fa-trophy"></i>
-          <span>¡Checklist completado exitosamente!</span>
-        </div>
+        <!-- Sección de warnings, avance automático y completion-message removida -->
       </div>
     </div>
   </div>
@@ -646,104 +682,180 @@ onMounted(async () => {
   }
 }
 
-.phase-actions {
-  display: flex;
-  justify-content: center;
-  padding-top: 1rem;
-  border-top: 1px solid $BAKANO-LIGHT;
+// Estilos para la sección de observaciones
+.phase-observations {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: lighten($BAKANO-LIGHT, 4%);
+  border-radius: 8px;
+  border: 1px solid $BAKANO-LIGHT;
 }
 
-.btn-next-phase {
-  background: $BAKANO-GREEN;
+.observations-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  
+  h5 {
+    font-family: $font-principal;
+    font-size: 1rem;
+    font-weight: 600;
+    color: $BAKANO-DARK;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    
+    i {
+      color: $BAKANO-PURPLE;
+      font-size: 0.9rem;
+    }
+  }
+}
+
+.edit-observations-btn {
+  background: $BAKANO-PURPLE;
   color: $white;
   border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-family: $font-principal;
-  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   
-  &:hover:not(:disabled) {
-    background: darken($BAKANO-GREEN, 8%);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba($BAKANO-GREEN, 0.3);
+  &:hover {
+    background: darken($BAKANO-PURPLE, 8%);
+    transform: translateY(-1px);
   }
   
-  &:disabled {
-    background: rgba($BAKANO-DARK, 0.3);
-    cursor: not-allowed;
+  &:active {
+    transform: translateY(0);
   }
 }
 
-.completion-message {
-  text-align: center;
-  padding: 1.5rem;
-  background: lighten($BAKANO-GREEN, 45%);
-  border-radius: 8px;
-  color: darken($BAKANO-GREEN, 10%);
-  font-weight: 600;
+.observations-display {
+  .observations-text {
+    color: $BAKANO-DARK;
+    line-height: 1.6;
+    margin: 0;
+    padding: 1rem;
+    background: $white;
+    border-radius: 6px;
+    border: 1px solid rgba($BAKANO-LIGHT, 0.8);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+}
+
+.no-observations {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba($BAKANO-DARK, 0.6);
+  font-style: italic;
+  padding: 1rem;
+  background: rgba($BAKANO-LIGHT, 0.3);
+  border-radius: 6px;
   
   i {
-    margin-right: 0.5rem;
-    font-size: 1.2rem;
+    color: $BAKANO-PURPLE;
   }
 }
 
-.completion-warning {
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background: lighten($BAKANO-PINK, 40%);
-  border: 1px solid lighten($BAKANO-PINK, 20%);
-  border-radius: 8px;
-  
-  .warning-content {
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-  
-  .warning-icon {
-    color: $BAKANO-PINK;
-    font-size: 1.5rem;
-    flex-shrink: 0;
-    margin-top: 0.25rem;
-  }
-  
-  .warning-text {
-    flex: 1;
+.observations-editor {
+  .observations-textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 1rem;
+    border: 2px solid $BAKANO-LIGHT;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: $BAKANO-DARK;
+    background: $white;
+    resize: vertical;
+    transition: border-color 0.2s ease;
     
-    h4 {
-      margin: 0 0 0.5rem 0;
-      color: darken($BAKANO-PINK, 10%);
-      font-size: 1rem;
-      font-weight: 600;
+    &:focus {
+      outline: none;
+      border-color: $BAKANO-PURPLE;
+      box-shadow: 0 0 0 3px rgba($BAKANO-PURPLE, 0.1);
     }
     
-    p {
-      margin: 0 0 0.5rem 0;
-      color: darken($BAKANO-PINK, 15%);
-      font-size: 0.9rem;
-      line-height: 1.4;
-      
-      &:last-child {
-        margin-bottom: 0;
-      }
+    &:disabled {
+      background: lighten($BAKANO-LIGHT, 2%);
+      cursor: not-allowed;
+      opacity: 0.7;
     }
     
-    .warning-note {
-      font-size: 0.85rem;
-      font-style: italic;
-      
-      strong {
-        font-weight: 600;
-      }
+    &::placeholder {
+      color: rgba($BAKANO-DARK, 0.5);
     }
   }
 }
+
+.editor-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  justify-content: flex-end;
+}
+
+.save-btn,
+.cancel-btn {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+.save-btn {
+  background: $BAKANO-GREEN;
+  color: $white;
+  
+  &:hover:not(:disabled) {
+    background: darken($BAKANO-GREEN, 8%);
+    transform: translateY(-1px);
+  }
+  
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+}
+
+.cancel-btn {
+  background: rgba($BAKANO-DARK, 0.1);
+  color: $BAKANO-DARK;
+  border: 1px solid rgba($BAKANO-DARK, 0.2);
+  
+  &:hover:not(:disabled) {
+    background: rgba($BAKANO-DARK, 0.15);
+    transform: translateY(-1px);
+  }
+  
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+}
+
+// Estilos relacionados con completion-message y completion-warning removidos
 
 .phase-status-badge {
   font-size: 0.8rem;
@@ -789,6 +901,27 @@ onMounted(async () => {
   .checklist-item {
     flex-direction: column;
     gap: 0.75rem;
+  }
+  
+  // Estilos responsive para observaciones
+  .observations-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    
+    h5 {
+      text-align: center;
+    }
+  }
+  
+  .editor-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+    
+    .save-btn,
+    .cancel-btn {
+      justify-content: center;
+    }
   }
 }
 </style>
