@@ -110,6 +110,16 @@ watch(
           placeholder="Buscar tipo de negocio..."
         />
       </div>
+
+      <div class="form-group">
+        <label>Compromiso de Valor</label>
+        <p>Describe brevemente la propuesta que le prometimos al cliente.</p>
+        <textarea
+          v-model="form.valueProposition"
+          placeholder="Ej: Facturar 1 millón de dólares"
+          rows="3"
+        ></textarea>
+      </div>
     </div>
 
     <div class="form-group">
@@ -178,7 +188,8 @@ input:disabled {
     }
 
     input,
-    select {
+    select,
+    textarea {
       font-family: $font-secondary;
       padding: 0.75rem 1rem;
       font-size: 1rem;
@@ -196,6 +207,11 @@ input:disabled {
         box-shadow: 0 0 0 3px rgba($BAKANO-PINK, 0.15);
         background-color: #fff;
       }
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
     }
   }
 }
